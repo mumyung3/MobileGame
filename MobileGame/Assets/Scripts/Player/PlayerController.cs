@@ -4,27 +4,26 @@ public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
     [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float smoothTime = 0.1f;
-    [SerializeField] private bool lockYPosition = true;
-    [SerializeField] private float yPosition = 0f;
+    [SerializeField] private float moveSensitivity = 1f;
+    [SerializeField] private bool lockYMovement = true;
 
     [Header("Debug")]
     [SerializeField] private bool showDebugInfo = true;
 
-    private Vector3 targetPosition;
-    private Vector3 velocity = Vector3.zero;
+    private CharacterController characterController;
     private PlayerInputController inputController;
     private Camera playerCamera;
+    private Vector3 currentMoveDirection = Vector3.zero;
 
     private void Start()
     {
-        targetPosition = transform.position;
-
-        if (lockYPosition)
-            yPosition = transform.position.y;
+        characterController = GetComponent<CharacterController>();
+        if (characterController == null)
+        {
+            Debug.LogError("CharacterController component not found! Please add CharacterController to this GameObject.");
+        }
 
         playerCamera = Camera.main;
-
         FindAndConnectInputController();
     }
 
@@ -56,28 +55,34 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        transform.position = Vector3.SmoothDamp(
-            transform.position,
-            targetPosition,
-            ref velocity,
-            smoothTime
-        );
+        // Update에서는 관성이나 추가 처리만 담당
+        if (showDebugInfo && IsMoving())
+        {
+            Debug.DrawRay(transform.position, Vector3.forward * 2f, Color.blue, 0.1f);
+        }
     }
 
     private void HandleDrag(Vector2 currentPosition, Vector2 deltaMove)
     {
-        Vector3 worldDelta = ScreenToWorldMovement(deltaMove);
-        targetPosition += worldDelta * moveSpeed * Time.deltaTime;
+        if (characterController == null) return;
 
-        if (lockYPosition)
-            targetPosition.y = yPosition;
+        Vector3 worldDelta = ScreenToWorldMovement(deltaMove);
+        Vector3 movement = worldDelta * moveSensitivity;
+
+        if (lockYMovement)
+            movement.y = 0f;
+
+        // 직접 즉시 이동 (부드러운 연속 이동)
+        characterController.Move(movement);
 
         if (showDebugInfo)
-            Debug.Log($"Player target position: {targetPosition}, Delta: {worldDelta}");
+            Debug.Log($"Player immediate movement: {movement}, Delta: {worldDelta}");
     }
 
     private void HandleDragEnd(Vector2 endPosition)
     {
+        currentMoveDirection = Vector3.zero;
+
         if (showDebugInfo)
             Debug.Log("Drag ended - Player movement stopped");
     }
@@ -97,15 +102,20 @@ public class PlayerController : MonoBehaviour
         moveSpeed = newSpeed;
     }
 
-    public void SetTargetPosition(Vector3 newTarget)
+    public void SetMoveDirection(Vector3 direction)
     {
-        targetPosition = newTarget;
-        if (lockYPosition)
-            targetPosition.y = yPosition;
+        currentMoveDirection = direction;
+        if (lockYMovement)
+            currentMoveDirection.y = 0f;
     }
 
-    public Vector3 GetTargetPosition()
+    public Vector3 GetCurrentPosition()
     {
-        return targetPosition;
+        return transform.position;
+    }
+
+    public bool IsMoving()
+    {
+        return characterController != null && characterController.velocity.magnitude > 0.1f;
     }
 }
