@@ -7,6 +7,11 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float moveSensitivity = 1f;
     [SerializeField] private bool lockYMovement = true;
 
+    [Header("Rotation Settings")]
+    [SerializeField] private bool enableRotation = true;
+    [SerializeField] private float rotationSpeed = 10f;
+    [SerializeField] private float minMoveThreshold = 0.1f;
+
     [Header("Debug")]
     [SerializeField] private bool showDebugInfo = true;
 
@@ -14,6 +19,7 @@ public class PlayerController : MonoBehaviour
     private PlayerInputController inputController;
     private Camera playerCamera;
     private Vector3 currentMoveDirection = Vector3.zero;
+    private Vector3 lastMoveDirection = Vector3.zero;
 
     private void Start()
     {
@@ -55,10 +61,17 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        // Update에서는 관성이나 추가 처리만 담당
+        // 회전 처리
+        if (enableRotation && lastMoveDirection.magnitude > minMoveThreshold)
+        {
+            RotateTowardsMovement(lastMoveDirection);
+        }
+
+        // 디버그 표시
         if (showDebugInfo && IsMoving())
         {
-            Debug.DrawRay(transform.position, Vector3.forward * 2f, Color.blue, 0.1f);
+            Debug.DrawRay(transform.position, lastMoveDirection * 2f, Color.blue, 0.1f);
+            Debug.DrawRay(transform.position, transform.forward * 3f, Color.red, 0.1f);
         }
     }
 
@@ -72,11 +85,17 @@ public class PlayerController : MonoBehaviour
         if (lockYMovement)
             movement.y = 0f;
 
+        // 이동 방향 저장 (회전용)
+        if (movement.magnitude > minMoveThreshold)
+        {
+            lastMoveDirection = movement.normalized;
+        }
+
         // 직접 즉시 이동 (부드러운 연속 이동)
         characterController.Move(movement);
 
         if (showDebugInfo)
-            Debug.Log($"Player immediate movement: {movement}, Delta: {worldDelta}");
+            Debug.Log($"Player immediate movement: {movement}, Direction: {lastMoveDirection}");
     }
 
     private void HandleDragEnd(Vector2 endPosition)
@@ -85,6 +104,14 @@ public class PlayerController : MonoBehaviour
 
         if (showDebugInfo)
             Debug.Log("Drag ended - Player movement stopped");
+    }
+
+    private void RotateTowardsMovement(Vector3 moveDirection)
+    {
+        if (moveDirection.magnitude < 0.01f) return;
+
+        Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
     }
 
     private Vector3 ScreenToWorldMovement(Vector2 screenDelta)
