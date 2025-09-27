@@ -6,21 +6,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Unity iOS mobile game project built with Unity 2021.3.15f1 on macOS. The project is designed for rapid prototyping of simple mobile games, currently focused on an idle/management game with game objects like buckets, counters, ovens, and money collection systems.
 
+### 📚 Project Documentation
+Detailed design documents are available in the `Documentation/` folder:
+- **PROJECT_DESIGN.md**: Complete project design overview with game systems and architecture
+- **클래스다이어그램.pdf**: Class diagram showing game object relationships
+- **유스케이스다이어그램.pdf**: Use case diagram defining player interactions
+- **시퀀서다이어그램.pdf**: Sequence diagrams for main game processes
+
 ## Project Structure
 
 ```
-MobileGame/
-├── Assets/
-│   ├── Scenes/          # Unity scenes (GameMap.unity is main scene)
-│   ├── Prefabs/         # Game object prefabs (Bucket, Counter, Oven, MoneyFloor, Upgrade, UpgradeUI)
-│   ├── Practice/        # Practice assets including sprites, materials, prefabs, animations
-│   │   ├── Sprites/     # 2D sprites and UI assets
-│   │   ├── Materials/   # Material assets
-│   │   ├── Prefabs/     # Practice prefabs
-│   │   ├── Animation/   # Animation controllers and clips
-│   │   └── FBX/         # 3D models
-│   └── TextMesh Pro/    # TextMesh Pro package assets
-└── ProjectSettings/     # Unity project configuration
+SuperCent/
+├── Documentation/       # 설계 문서 및 다이어그램
+│   ├── PROJECT_DESIGN.md
+│   ├── 클래스다이어그램.pdf
+│   ├── 유스케이스다이어그램.pdf
+│   └── 시퀀서다이어그램.pdf
+├── MobileGame/
+│   ├── Assets/
+│   │   ├── Scenes/          # Unity scenes (GameMap.unity is main scene)
+│   │   ├── Prefabs/         # Game object prefabs (Bucket, Counter, Oven, MoneyFloor, Upgrade, UpgradeUI)
+│   │   ├── Practice/        # Practice assets including sprites, materials, prefabs, animations
+│   │   │   ├── Sprites/     # 2D sprites and UI assets
+│   │   │   ├── Materials/   # Material assets
+│   │   │   ├── Prefabs/     # Practice prefabs
+│   │   │   ├── Animation/   # Animation controllers and clips
+│   │   │   └── FBX/         # 3D models
+│   │   └── TextMesh Pro/    # TextMesh Pro package assets
+│   └── ProjectSettings/     # Unity project configuration
+├── CLAUDE.md           # 이 파일 - Claude Code 가이드
+└── README.md           # 프로젝트 개요
 ```
 
 ## iOS Development Environment Setup
