@@ -15,6 +15,11 @@ public class PlayerInputController : MonoBehaviour
     [SerializeField] private bool showDebugInfo = true;
     [SerializeField] private Vector2 lastTouchPosition;
     [SerializeField] private bool isTouching;
+
+    [Header("Drag Settings")]
+    [SerializeField] private float dragThreshold = 10f;
+    [SerializeField] private Vector2 startTouchPosition;
+    [SerializeField] private bool isDragging = false;
     
     // Input Actions
     private InputAction touchPositionAction;
@@ -25,6 +30,11 @@ public class PlayerInputController : MonoBehaviour
     public System.Action<Vector2> OnTouchHold;
     public System.Action<Vector2> OnTouchEnd;
     public System.Action<Vector2> OnTap;
+
+    // Drag Events
+    public System.Action<Vector2> OnDragStart;
+    public System.Action<Vector2, Vector2> OnDrag;
+    public System.Action<Vector2> OnDragEnd;
     
     private void Awake()
     {
@@ -77,12 +87,44 @@ public class PlayerInputController : MonoBehaviour
         // Handle continuous touch/mouse hold
         if (isTouching && touchPositionAction != null)
         {
-            Vector2 touchPos = touchPositionAction.ReadValue<Vector2>();
-            lastTouchPosition = touchPos;
-            OnTouchHold?.Invoke(touchPos);
-            
-            if (showDebugInfo)
-                Debug.DrawRay(GetWorldPosition(touchPos), Vector3.up * 2f, Color.yellow);
+            Vector2 currentTouchPos = touchPositionAction.ReadValue<Vector2>();
+
+            // Check for drag start
+            if (!isDragging)
+            {
+                float distance = Vector2.Distance(currentTouchPos, startTouchPosition);
+                if (distance > dragThreshold)
+                {
+                    isDragging = true;
+                    OnDragStart?.Invoke(startTouchPosition);
+
+                    if (showDebugInfo)
+                        Debug.Log($"Drag Started from: {startTouchPosition}");
+                }
+            }
+
+            // Handle drag
+            if (isDragging)
+            {
+                Vector2 deltaMove = currentTouchPos - lastTouchPosition;
+                OnDrag?.Invoke(currentTouchPos, deltaMove);
+
+                if (showDebugInfo)
+                {
+                    Debug.DrawRay(GetWorldPosition(currentTouchPos), Vector3.up * 3f, Color.magenta);
+                    Debug.Log($"Dragging at: {currentTouchPos}, Delta: {deltaMove}");
+                }
+            }
+            else
+            {
+                // Regular touch hold (not dragging yet)
+                OnTouchHold?.Invoke(currentTouchPos);
+
+                if (showDebugInfo)
+                    Debug.DrawRay(GetWorldPosition(currentTouchPos), Vector3.up * 2f, Color.yellow);
+            }
+
+            lastTouchPosition = currentTouchPos;
         }
     }
     
@@ -91,9 +133,11 @@ public class PlayerInputController : MonoBehaviour
         isTouching = true;
         Vector2 touchPos = touchPositionAction.ReadValue<Vector2>();
         lastTouchPosition = touchPos;
-        
+        startTouchPosition = touchPos;
+        isDragging = false;
+
         OnTouchStart?.Invoke(touchPos);
-        
+
         if (showDebugInfo)
         {
             Debug.Log($"Touch Started at: {touchPos}");
@@ -121,9 +165,19 @@ public class PlayerInputController : MonoBehaviour
     {
         isTouching = false;
         Vector2 touchPos = lastTouchPosition;
-        
+
+        // Handle drag end if was dragging
+        if (isDragging)
+        {
+            OnDragEnd?.Invoke(touchPos);
+            isDragging = false;
+
+            if (showDebugInfo)
+                Debug.Log($"Drag Ended at: {touchPos}");
+        }
+
         OnTouchEnd?.Invoke(touchPos);
-        
+
         if (showDebugInfo)
         {
             Debug.Log($"Touch Ended at: {touchPos}");

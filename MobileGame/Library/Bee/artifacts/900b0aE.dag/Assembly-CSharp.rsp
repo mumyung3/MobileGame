@@ -360,6 +360,7 @@
 "Assets/Scripts/Input/InputSystemManager.cs"
 "Assets/Scripts/Input/PlayerInputController.cs"
 "Assets/Scripts/Input/TouchTestObject.cs"
+"Assets/Scripts/Player/PlayerController.cs"
 "Assets/Scripts/PlayerCharacter.cs"
 -langversion:9.0
 

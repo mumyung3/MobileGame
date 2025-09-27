@@ -258,6 +258,11 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 6898330439232181004, guid: 44cd37f0f2e49834ba24509b574b1f76, type: 3}
   m_PrefabInstance: {fileID: 260065753}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &260065755 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1449862189540215297, guid: 44cd37f0f2e49834ba24509b574b1f76, type: 3}
+  m_PrefabInstance: {fileID: 260065753}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &260065756
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -275,6 +280,9 @@ MonoBehaviour:
   showDebugInfo: 1
   lastTouchPosition: {x: 0, y: 0}
   isTouching: 0
+  dragThreshold: 10
+  startTouchPosition: {x: 0, y: 0}
+  isDragging: 0
 --- !u!114 &260065757
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -399,6 +407,23 @@ MonoBehaviour:
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 963194227}
+--- !u!114 &260065763
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 260065755}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 210a4719f68084f97973341d02610450, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveSpeed: 5
+  smoothTime: 0.1
+  lockYPosition: 1
+  yPosition: 0
+  showDebugInfo: 1
 --- !u!1001 &437517493
 PrefabInstance:
   m_ObjectHideFlags: 0
