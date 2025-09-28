@@ -16,13 +16,18 @@ public class Money : MonoBehaviour
     private bool isCollected = false;
     private MoneyManager moneyManager;
 
-    public void Initialize()
+    public void Initialize(MoneyManager manager = null)
     {
         isCollected = false;
 
-        // MoneyManager 찾기
-        if (moneyManager == null)
+        // MoneyManager 참조 설정
+        if (manager != null)
         {
+            moneyManager = manager;
+        }
+        else if (moneyManager == null)
+        {
+            // 백업: MoneyManager가 전달되지 않은 경우에만 찾기
             moneyManager = FindObjectOfType<MoneyManager>();
         }
 

@@ -28,6 +28,12 @@ public class CustomerManager : MonoBehaviour
     [SerializeField] private Vector3 queueDirection = Vector3.back; // z축 음의 방향으로 줄 세우기
     [SerializeField] private int maxCounterQueueSize = 2; // 카운터 대기열 최대 인원
 
+    [Header("Third Customer Special Position")]
+    [SerializeField] private Transform thirdCustomerPosition; // 3번째 고객이 갈 특별 위치
+
+    [Header("Money Manager")]
+    [SerializeField] private MoneyManager moneyManager; // 돈 관리 시스템
+
     private List<Customer> activeCustomers = new List<Customer>();
     private List<Customer> counterQueueCustomers = new List<Customer>(); // 도착 순서대로 정렬된 대기열
     private List<Customer> customersWithBread = new List<Customer>(); // 빵을 집은 고객들 순서대로 저장
@@ -230,17 +236,6 @@ public class CustomerManager : MonoBehaviour
         // 랜덤 스폰 포인트 선택
         Transform spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
 
-        // 빵이 있는 버킷 선택 (빵이 없어도 랜덤 버킷 선택)
-        BucketManager targetBucket = GetAvailableBucket();
-
-        if (targetBucket == null)
-        {
-            // 빵이 없어도 아무 버킷이나 선택 (고객이 기다리게 됨)
-            targetBucket = GetRandomBucket();
-        }
-
-        if (targetBucket == null) return;
-
         // 고객 생성
         GameObject customerObj = Instantiate(customerPrefab, spawnPoint.position, spawnPoint.rotation);
         Customer customer = customerObj.GetComponent<Customer>();
@@ -250,8 +245,30 @@ public class CustomerManager : MonoBehaviour
             customer = customerObj.AddComponent<Customer>();
         }
 
-        // 고객 초기화
-        customer.Initialize(this, targetBucket, counterPosition);
+        // 3번째 고객인지 확인 (0, 1, 2번째 다음이 3번째)
+        bool isThirdCustomer = activeCustomers.Count == 2;
+
+        if (isThirdCustomer && thirdCustomerPosition != null)
+        {
+            // 3번째 고객은 특별 위치로 직접 이동
+            customer.InitializeForSpecialPosition(this, thirdCustomerPosition, counterPosition);
+        }
+        else
+        {
+            // 일반 고객들은 빵 진열대로 이동
+            BucketManager targetBucket = GetAvailableBucket();
+
+            if (targetBucket == null)
+            {
+                // 빵이 없어도 아무 버킷이나 선택 (고객이 기다리게 됨)
+                targetBucket = GetRandomBucket();
+            }
+
+            if (targetBucket == null) return;
+
+            customer.Initialize(this, targetBucket, counterPosition);
+        }
+
         activeCustomers.Add(customer);
 
         // 네비메시 에이전트가 있는지 확인
@@ -649,6 +666,12 @@ public class CustomerManager : MonoBehaviour
     public void SetSpawnInterval(float newInterval)
     {
         spawnInterval = Mathf.Max(1f, newInterval);
+    }
+
+    // MoneyManager 참조 반환
+    public MoneyManager GetMoneyManager()
+    {
+        return moneyManager;
     }
 
     private void OnDestroy()

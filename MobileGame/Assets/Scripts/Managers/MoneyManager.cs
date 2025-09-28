@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 public class MoneyManager : MonoBehaviour
 {
@@ -34,12 +35,27 @@ public class MoneyManager : MonoBehaviour
     private List<GameObject> spawnedMoney = new List<GameObject>();
     private bool[,,] gridOccupied; // [layer][x][z] 그리드 점유 상태
     private int maxLayers = 10; // 최대 층수
-    private int totalMoney = 0; // 플레이어가 획득한 총 돈
+    private static int totalMoney = 0; // 플레이어가 획득한 총 돈 (모든 MoneyManager가 공유)
     private SphereCollider collectionCollider;
+
+    // 돈 변경 시 모든 MoneyManager에게 알리는 이벤트
+    public static event Action<int> OnMoneyChanged;
 
     private void Start()
     {
+        // 이벤트 구독
+        OnMoneyChanged += UpdateMoneyText;
+
         InitializeMoneyManager();
+
+        // 초기 UI 업데이트
+        UpdateMoneyText(totalMoney);
+    }
+
+    private void OnDestroy()
+    {
+        // 이벤트 구독 해제
+        OnMoneyChanged -= UpdateMoneyText;
     }
 
     private void InitializeMoneyManager()
@@ -211,8 +227,8 @@ public class MoneyManager : MonoBehaviour
             moneyScript = moneyObj.AddComponent<Money>();
         }
 
-        // 돈 초기화
-        moneyScript.Initialize();
+        // 돈 초기화 (자신의 MoneyManager 참조 전달)
+        moneyScript.Initialize(this);
         spawnedMoney.Add(moneyObj);
 
         // 그리드 위치 점유 표시
@@ -258,6 +274,9 @@ public class MoneyManager : MonoBehaviour
         int earnedMoney = collectedCount * moneyValuePerObject;
         totalMoney += earnedMoney;
 
+        // 모든 MoneyManager의 UI 업데이트를 위한 이벤트 호출
+        OnMoneyChanged?.Invoke(totalMoney);
+
         // 모든 돈 객체 파괴
         foreach (GameObject money in spawnedMoney)
         {
@@ -288,10 +307,15 @@ public class MoneyManager : MonoBehaviour
     // 돈 텍스트 UI 업데이트
     private void UpdateMoneyText()
     {
+        UpdateMoneyText(totalMoney);
+    }
+
+    private void UpdateMoneyText(int newTotal)
+    {
         if (moneyText != null)
         {
-            moneyText.text = totalMoney.ToString();
-            DebugLog($"[MoneyManager] UI 텍스트 업데이트: {totalMoney}");
+            moneyText.text = newTotal.ToString();
+            DebugLog($"[MoneyManager] UI 텍스트 업데이트: {newTotal}");
         }
         else
         {
@@ -511,7 +535,7 @@ public class MoneyManager : MonoBehaviour
     public void AddPlayerMoney(int amount)
     {
         totalMoney += amount;
-        UpdateMoneyText();
+        OnMoneyChanged?.Invoke(totalMoney);
         DebugLog($"[MoneyManager] 플레이어 돈 추가: +{amount}, 총 보유: {totalMoney}");
     }
 
@@ -520,7 +544,7 @@ public class MoneyManager : MonoBehaviour
         if (totalMoney >= amount)
         {
             totalMoney -= amount;
-            UpdateMoneyText();
+            OnMoneyChanged?.Invoke(totalMoney);
             DebugLog($"[MoneyManager] 플레이어 돈 차감: -{amount}, 총 보유: {totalMoney}");
             return true;
         }

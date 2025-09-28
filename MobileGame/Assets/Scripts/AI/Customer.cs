@@ -33,6 +33,9 @@ public class Customer : MonoBehaviour
     private BucketManager targetBucket;
     private Transform counterPosition;
     private CustomerManager customerManager;
+    private Transform targetSpecialPosition; // 3번째 고객의 특별 위치
+    private Transform chairPosition; // 의자 위치
+    private bool isThirdCustomer = false; // 3번째 고객인지 여부
 
     // 빵 관련
     private List<GameObject> carriedBreads = new List<GameObject>();
@@ -56,6 +59,10 @@ public class Customer : MonoBehaviour
         WaitingAtBucket,
         PickingUpBread,
         WaitingAtBucketForQueue, // 진열대에서 카운터 대기열 자리 기다리는 상태
+        MovingToSpecialPosition, // 3번째 고객의 특별 위치로 이동
+        WaitingAtSpecialPosition, // 특별 위치에서 대기
+        MovingToChair, // 의자로 이동
+        SittingOnChair, // 의자에 앉아있는 상태
         MovingToCounter,
         WaitingAtCounter,
         Paying,
@@ -122,6 +129,24 @@ public class Customer : MonoBehaviour
         StartCustomerBehavior();
     }
 
+    // 3번째 고객을 위한 특별 위치 초기화
+    public void InitializeForSpecialPosition(CustomerManager manager, Transform specialPosition, Transform counter)
+    {
+        customerManager = manager;
+        targetBucket = null; // 빵 진열대 대신 특별 위치 사용
+        counterPosition = counter;
+        currentState = CustomerState.MovingToSpecialPosition;
+        isThirdCustomer = true; // 3번째 고객으로 설정
+
+        // 특별 위치를 임시로 targetBucket 위치로 사용
+        targetSpecialPosition = specialPosition;
+
+        // Chair 델리게이트 구독
+        Upgrade.OnChairActivated += OnChairActivated;
+
+        StartCustomerBehavior();
+    }
+
     private void StartCustomerBehavior()
     {
         StartCoroutine(CustomerBehaviorRoutine());
@@ -147,6 +172,22 @@ public class Customer : MonoBehaviour
 
                 case CustomerState.WaitingAtBucketForQueue:
                     yield return WaitAtBucketForQueue();
+                    break;
+
+                case CustomerState.MovingToSpecialPosition:
+                    yield return MoveToSpecialPosition();
+                    break;
+
+                case CustomerState.WaitingAtSpecialPosition:
+                    yield return WaitAtSpecialPosition();
+                    break;
+
+                case CustomerState.MovingToChair:
+                    yield return MoveToChair();
+                    break;
+
+                case CustomerState.SittingOnChair:
+                    yield return SitOnChair();
                     break;
 
                 case CustomerState.MovingToCounter:
@@ -478,15 +519,18 @@ public class Customer : MonoBehaviour
         Debug.Log($"[Customer {name}] 결제 시작 - 빵 개수: {breadCount}");
 
         // MoneyManager 찾기 및 돈 스폰
-        MoneyManager moneyManager = FindObjectOfType<MoneyManager>();
-        if (moneyManager != null && breadCount > 0)
+        if (customerManager != null)
         {
-            Debug.Log($"[Customer {name}] {breadCount}개 빵에 대한 돈 지급");
-            moneyManager.SpawnMoneyForBread(breadCount);
-        }
-        else
-        {
-            Debug.LogWarning($"[Customer {name}] MoneyManager를 찾을 수 없거나 빵이 없음");
+            MoneyManager moneyManager = customerManager.GetMoneyManager();
+            if (moneyManager != null && breadCount > 0)
+            {
+                Debug.Log($"[Customer {name}] {breadCount}개 빵에 대한 돈 지급");
+                moneyManager.SpawnMoneyForBread(breadCount);
+            }
+            else
+            {
+                Debug.LogWarning($"[Customer {name}] MoneyManager를 찾을 수 없거나 빵이 없음");
+            }
         }
 
         // 결제 처리 - 모든 빵 제거
@@ -528,13 +572,30 @@ public class Customer : MonoBehaviour
             Vector3 safePosition = GetSafeExitPosition();
             if (safePosition != Vector3.zero)
             {
-                navAgent.SetDestination(safePosition);
-                UpdateAnimation(true);
-
-                // 안전한 위치에 도달할 때까지 대기
-                while (Vector3.Distance(transform.position, safePosition) > 1f)
+                // NavMeshAgent 재활성화 및 상태 확인
+                if (navAgent != null)
                 {
-                    yield return new WaitForSeconds(0.1f);
+                    if (!navAgent.enabled)
+                    {
+                        navAgent.enabled = true;
+                    }
+
+                    if (navAgent.isOnNavMesh && navAgent.enabled)
+                    {
+                        navAgent.isStopped = false;
+                        navAgent.SetDestination(safePosition);
+                        UpdateAnimation(true);
+
+                        // 안전한 위치에 도달할 때까지 대기
+                        while (Vector3.Distance(transform.position, safePosition) > 1f)
+                        {
+                            yield return new WaitForSeconds(0.1f);
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[Customer {name}] NavMeshAgent가 NavMesh에 배치되지 않았습니다.");
+                    }
                 }
             }
         }
@@ -543,14 +604,28 @@ public class Customer : MonoBehaviour
         if (customerManager != null)
         {
             Transform exitPoint = customerManager.GetRandomExitPoint();
-            if (exitPoint != null)
+            if (exitPoint != null && navAgent != null)
             {
-                navAgent.SetDestination(exitPoint.position);
-                UpdateAnimation(true);
-
-                while (Vector3.Distance(transform.position, exitPoint.position) > 1f)
+                // NavMeshAgent 상태 확인 및 설정
+                if (!navAgent.enabled)
                 {
-                    yield return new WaitForSeconds(0.1f);
+                    navAgent.enabled = true;
+                }
+
+                if (navAgent.isOnNavMesh && navAgent.enabled)
+                {
+                    navAgent.isStopped = false;
+                    navAgent.SetDestination(exitPoint.position);
+                    UpdateAnimation(true);
+
+                    while (Vector3.Distance(transform.position, exitPoint.position) > 1f)
+                    {
+                        yield return new WaitForSeconds(0.1f);
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"[Customer {name}] 출구 이동 시 NavMeshAgent가 NavMesh에 배치되지 않았습니다.");
                 }
             }
         }
@@ -1072,6 +1147,214 @@ public class Customer : MonoBehaviour
     public bool IsMoving()
     {
         return navAgent != null && navAgent.velocity.magnitude > 0.1f;
+    }
+
+    // 3번째 고객의 특별 위치로 이동
+    private System.Collections.IEnumerator MoveToSpecialPosition()
+    {
+        if (targetSpecialPosition == null)
+        {
+            currentState = CustomerState.Leaving;
+            yield break;
+        }
+
+        if (navAgent != null)
+        {
+            navAgent.SetDestination(targetSpecialPosition.position);
+        }
+
+        // 이동 애니메이션 시작
+        if (customerAnimator != null)
+        {
+            customerAnimator.SetBool("bIsRunning", true);
+        }
+
+        // 목적지 근처 도착 대기 (더 넉넉한 거리로 설정)
+        float arrivalDistance = 2.0f; // stoppingDistance보다 더 넉넉하게
+        while (Vector3.Distance(transform.position, targetSpecialPosition.position) > arrivalDistance)
+        {
+            yield return new WaitForSeconds(0.1f);
+        }
+
+        // 도착 후 애니메이션 정지 및 NavMeshAgent 완전 비활성화
+        if (navAgent != null)
+        {
+            navAgent.ResetPath();
+            navAgent.isStopped = true;
+            navAgent.enabled = false;
+        }
+
+        if (customerAnimator != null)
+        {
+            customerAnimator.SetBool("bIsRunning", false);
+        }
+
+        currentState = CustomerState.WaitingAtSpecialPosition;
+        yield break;
+    }
+
+    // 특별 위치에서 대기
+    private System.Collections.IEnumerator WaitAtSpecialPosition()
+    {
+        // 특별 위치에서 계속 대기 (업그레이드나 다른 조건에 의해 상태가 변경될 때까지)
+        yield return new WaitForSeconds(1f);
+        yield break;
+    }
+
+    // Chair 활성화 델리게이트 콜백
+    private void OnChairActivated(Transform chair)
+    {
+        // 3번째 고객이고 특별 위치에서 대기 중일 때만 반응
+        if (isThirdCustomer && currentState == CustomerState.WaitingAtSpecialPosition)
+        {
+            chairPosition = chair;
+            currentState = CustomerState.MovingToChair;
+        }
+    }
+
+    // 의자로 이동
+    private System.Collections.IEnumerator MoveToChair()
+    {
+        if (chairPosition == null)
+        {
+            currentState = CustomerState.WaitingAtSpecialPosition;
+            yield break;
+        }
+
+        // NavMeshAgent 다시 활성화
+        if (navAgent != null)
+        {
+            navAgent.enabled = true;
+            navAgent.isStopped = false;
+            navAgent.SetDestination(chairPosition.position);
+        }
+
+        // 이동 애니메이션 시작
+        if (customerAnimator != null)
+        {
+            customerAnimator.SetBool("bIsRunning", true);
+        }
+
+        // 의자 도착 대기
+        float arrivalDistance = 1.5f;
+        while (Vector3.Distance(transform.position, chairPosition.position) > arrivalDistance)
+        {
+            yield return new WaitForSeconds(0.1f);
+        }
+
+        // 도착 후 애니메이션 정지 및 NavMeshAgent 완전 비활성화
+        if (navAgent != null)
+        {
+            navAgent.ResetPath();
+            navAgent.isStopped = true;
+            navAgent.enabled = false;
+        }
+
+        if (customerAnimator != null)
+        {
+            customerAnimator.SetBool("bIsRunning", false);
+        }
+
+        // 의자의 자식으로 만들고 로컬 좌표 (0,0,0)으로 설정
+        transform.SetParent(chairPosition);
+        transform.localPosition = Vector3.zero;
+        transform.localRotation = Quaternion.identity;
+
+        currentState = CustomerState.SittingOnChair;
+        yield break;
+    }
+
+    // 의자에 앉기
+    private System.Collections.IEnumerator SitOnChair()
+    {
+        // 앉기 애니메이션 트리거
+        if (customerAnimator != null)
+        {
+            customerAnimator.SetTrigger("bIsSitting");
+        }
+
+        // 3초 대기 후 앉은 상태 애니메이션 트리거
+        yield return new WaitForSeconds(3f);
+
+        if (customerAnimator != null)
+        {
+            customerAnimator.SetTrigger("bIsSitted");
+        }
+
+        // 잠시 앉아있다가 나가기
+        yield return new WaitForSeconds(2f);
+
+        // 돈 90원 두고 가기
+        SpawnMoneyForThirdCustomer();
+
+        // 의자에서 일어나서 안전한 위치로 이동
+        transform.SetParent(null); // 의자에서 분리
+
+        // 의자 뒤쪽으로 안전한 위치 계산 (x좌표 -2만큼 뒤로)
+        Vector3 safePosition = transform.position + Vector3.left * 2f;
+
+        // NavMeshAgent 재활성화하여 안전한 위치로 이동
+        if (navAgent != null)
+        {
+            navAgent.enabled = true;
+            navAgent.isStopped = false;
+
+            if (navAgent.isOnNavMesh)
+            {
+                navAgent.SetDestination(safePosition);
+
+                // 안전한 위치에 도달할 때까지 대기
+                float waitTime = 0f;
+                float maxWaitTime = 3f; // 최대 3초 대기
+                while (Vector3.Distance(transform.position, safePosition) > 1f && waitTime < maxWaitTime)
+                {
+                    waitTime += 0.1f;
+                    yield return new WaitForSeconds(0.1f);
+                }
+            }
+        }
+
+        currentState = CustomerState.Leaving;
+
+        yield break;
+    }
+
+    // 3번째 고객이 돈을 두고 가기
+    private void SpawnMoneyForThirdCustomer()
+    {
+        // Upgrade 컴포넌트가 참조하는 MoneyManager 위치 가져오기
+        Transform targetPosition = Upgrade.GetThirdCustomerMoneyPosition();
+
+        if (targetPosition != null)
+        {
+            // Upgrade에서 참조하는 MoneyManager 사용
+            MoneyManager targetMoneyManager = targetPosition.GetComponent<MoneyManager>();
+            if (targetMoneyManager != null)
+            {
+                // 90원 스폰 (9개의 돈 객체)
+                targetMoneyManager.SpawnMoneyForBread(9);
+                Debug.Log($"[Customer {name}] Upgrade MoneyManager에 90원 스폰");
+                return;
+            }
+        }
+
+        // 백업: 기존 방식으로 스폰
+        if (customerManager != null)
+        {
+            MoneyManager moneyManager = customerManager.GetMoneyManager();
+            if (moneyManager != null)
+            {
+                // 90원 스폰 (9개의 돈 객체)
+                moneyManager.SpawnMoneyForBread(9);
+                Debug.Log($"[Customer {name}] 기본 MoneyManager에 90원 스폰");
+            }
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // 델리게이트 구독 해제
+        Upgrade.OnChairActivated -= OnChairActivated;
     }
 
     private void OnDrawGizmosSelected()
