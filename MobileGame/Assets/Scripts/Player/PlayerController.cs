@@ -44,6 +44,9 @@ public class PlayerController : MonoBehaviour
     // Animation state
     private bool isGrabbed = false;
 
+    // Physics
+    private Vector3 velocity = Vector3.zero;
+
     private void Start()
     {
         characterController = GetComponent<CharacterController>();
@@ -127,6 +130,9 @@ public class PlayerController : MonoBehaviour
             UpdateCameraPosition();
         }
 
+        // 중력 적용
+        ApplyGravity();
+
         // 애니메이터 파라미터 업데이트
         if (useAnimator && playerAnimator != null)
         {
@@ -171,7 +177,9 @@ public class PlayerController : MonoBehaviour
         Vector3 movement = worldDelta;
 
         if (lockYMovement)
-            movement.y = 0f;
+            movement.y = velocity.y * Time.deltaTime; // 중력만 적용
+        else
+            movement.y += velocity.y * Time.deltaTime; // 이동 + 중력
 
         characterController.Move(movement);
 
@@ -228,7 +236,7 @@ public class PlayerController : MonoBehaviour
 
         // 실제 이동 적용 (Y축 강제 고정)
         Vector3 movement = currentMoveDirection * currentMoveSpeed * Time.deltaTime;
-        movement.y = 0f; // Y축 이동 완전 차단
+        movement.y = velocity.y * Time.deltaTime; // 중력 적용
         characterController.Move(movement);
     }
 
@@ -289,6 +297,22 @@ public class PlayerController : MonoBehaviour
         else
         {
             playerCamera.transform.position = targetPosition;
+        }
+    }
+
+    private void ApplyGravity()
+    {
+        if (characterController == null) return;
+
+        if (characterController.isGrounded)
+        {
+            // 바닥에 있으면 Y velocity 초기화
+            velocity.y = 0f;
+        }
+        else
+        {
+            // 공중에 있으면 중력 적용
+            velocity.y += gravity * Time.deltaTime;
         }
     }
 
