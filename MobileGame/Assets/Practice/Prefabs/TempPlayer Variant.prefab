@@ -48,7 +48,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3769144362882373593, guid: 7d7589d2636d44e64a0446841792863e, type: 3}
       propertyPath: m_Name
-      value: TempPlayer
+      value: TempPlayer Variant
       objectReference: {fileID: 0}
     - target: {fileID: 4541141870242516323, guid: 7d7589d2636d44e64a0446841792863e, type: 3}
       propertyPath: m_RootOrder
@@ -94,7 +94,8 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1432821811490904020, guid: 7d7589d2636d44e64a0446841792863e, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: 7d7589d2636d44e64a0446841792863e, type: 3}
 --- !u!4 &3747113825326111549 stripped
 Transform:

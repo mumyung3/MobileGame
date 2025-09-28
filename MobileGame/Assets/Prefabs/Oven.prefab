@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 208496521783043885}
-  - component: {fileID: 1637015628620251022}
   m_Layer: 0
   m_Name: Point
   m_TagString: Untagged
@@ -32,25 +31,6 @@ Transform:
   m_Father: {fileID: 4107877197426126078}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
---- !u!114 &1637015628620251022
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7665795018533983162}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 698b9c3663412451b9da73fccfe7b273, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  breadPrefab: {fileID: 919132149155446097, guid: 1949ec903206a6644b27b16f80ea6521, type: 3}
-  spawnPoint: {fileID: 208496521783043885}
-  spawnInterval: 5
-  maxBreadCount: 10
-  autoStart: 1
-  spawnOffset: {x: 0, y: 0, z: 0}
-  showDebugInfo: 1
 --- !u!1 &8831968296782789933
 GameObject:
   m_ObjectHideFlags: 0
@@ -60,6 +40,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4107877197426126078}
+  - component: {fileID: 1824780374}
+  - component: {fileID: 4333907215302502491}
   m_Layer: 0
   m_Name: Oven
   m_TagString: Untagged
@@ -76,8 +58,8 @@ Transform:
   m_GameObject: {fileID: 8831968296782789933}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.76, y: 0.76, z: 0.76}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 859910947045736316}
   - {fileID: 3274455127780870364}
@@ -86,6 +68,40 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1824780374
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8831968296782789933}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 698b9c3663412451b9da73fccfe7b273, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  breadPrefab: {fileID: 7814139412610811324, guid: 73d47b66bb359496983ec865fa65711b, type: 3}
+  spawnPoint: {fileID: 208496521783043885}
+  spawnInterval: 1
+  maxBreadCount: 10
+  autoStart: 1
+  spawnOffset: {x: 0, y: 0, z: 0}
+--- !u!208 &4333907215302502491
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8831968296782789933}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 2.185, y: 0.5, z: 2.5}
+  m_MoveThreshold: 0.1
+  m_Carve: 0
+  m_CarveOnlyStationary: 1
+  m_Center: {x: 0, y: 0, z: 0}
+  m_TimeToStationary: 0.5
 --- !u!1001 &893327969863080087
 PrefabInstance:
   m_ObjectHideFlags: 0

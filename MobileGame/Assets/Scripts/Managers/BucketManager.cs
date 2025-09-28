@@ -7,6 +7,8 @@ public class BucketManager : MonoBehaviour
     [SerializeField] private int maxBreadCapacity = 8;
     [SerializeField] private GameObject displayBreadPrefab;
 
+    public GameObject GetDisplayBreadPrefab() { return displayBreadPrefab; }
+
     [Header("Bread Display Positions")]
     [SerializeField] private Transform[] breadDisplayPoints = new Transform[8];
 
@@ -147,6 +149,9 @@ public class BucketManager : MonoBehaviour
 
     private System.Collections.IEnumerator AnimateDropAndScale(GameObject bread, Vector3 targetLocalPosition)
     {
+        // 빵 오브젝트가 파괴되었는지 확인
+        if (bread == null) yield break;
+
         // 시작 위치 (위쪽에서 시작)
         Vector3 startLocalPosition = targetLocalPosition + Vector3.up * dropHeight;
         bread.transform.localPosition = startLocalPosition;
@@ -160,6 +165,9 @@ public class BucketManager : MonoBehaviour
         // 드롭과 스케일 애니메이션을 동시에 실행
         while (elapsedTime < Mathf.Max(dropDuration, scaleAnimationDuration))
         {
+            // 매 프레임마다 빵이 아직 존재하는지 확인
+            if (bread == null) yield break;
+
             elapsedTime += Time.deltaTime;
 
             // 드롭 애니메이션
@@ -203,9 +211,12 @@ public class BucketManager : MonoBehaviour
             yield return null;
         }
 
-        // 최종 위치와 스케일 보장
-        bread.transform.localPosition = targetLocalPosition;
-        bread.transform.localScale = originalScale;
+        // 최종 위치와 스케일 보장 (빵이 아직 존재한다면)
+        if (bread != null)
+        {
+            bread.transform.localPosition = targetLocalPosition;
+            bread.transform.localScale = originalScale;
+        }
     }
 
     public void ClearAllDisplayedBreads()
@@ -250,6 +261,50 @@ public class BucketManager : MonoBehaviour
     public int GetRemainingCapacity()
     {
         return maxBreadCapacity - currentBreadCount;
+    }
+
+    public bool RemoveOneBread()
+    {
+        if (currentBreadCount > 0 && displayedBreads.Count > 0)
+        {
+            // 마지막 빵 제거
+            int lastIndex = displayedBreads.Count - 1;
+            GameObject breadToRemove = displayedBreads[lastIndex];
+
+            if (breadToRemove != null)
+            {
+                // 모든 코루틴을 정지하여 애니메이션 참조 오류 방지
+                StopAllCoroutines();
+                Destroy(breadToRemove);
+            }
+
+            displayedBreads.RemoveAt(lastIndex);
+            currentBreadCount--;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public GameObject GetLastBread()
+    {
+        if (displayedBreads.Count > 0)
+        {
+            return displayedBreads[displayedBreads.Count - 1];
+        }
+        return null;
+    }
+
+    public bool RemoveSpecificBread(GameObject breadToRemove)
+    {
+        if (breadToRemove != null && displayedBreads.Contains(breadToRemove))
+        {
+            displayedBreads.Remove(breadToRemove);
+            currentBreadCount--;
+            return true;
+        }
+        return false;
     }
 
     private void OnDrawGizmosSelected()

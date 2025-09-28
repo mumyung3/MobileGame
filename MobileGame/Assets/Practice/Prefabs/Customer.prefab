@@ -331,6 +331,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4541141870242516323}
   - component: {fileID: 971556608106169826}
+  - component: {fileID: 1432821811490904020}
   m_Layer: 10
   m_Name: Customer
   m_TagString: Untagged
@@ -352,6 +353,7 @@ Transform:
   m_Children:
   - {fileID: 4879004965011365373}
   - {fileID: 637029286650697684}
+  - {fileID: 728422729949473675}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -365,7 +367,7 @@ Animator:
   m_GameObject: {fileID: 3769144362882373593}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 599d38b81b4e84f18aa587de8445ad1e, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -375,6 +377,25 @@ Animator:
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorControllerStateOnDisable: 0
+--- !u!114 &1432821811490904020
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3769144362882373593}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c00d45b9cc8f141b19797f68168cf4f7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveSpeed: 3.5
+  waitTimeAtBucket: 1
+  waitTimeAtCounter: 1
+  despawnDelay: 1
+  stoppingDistance: 0.3
+  obstacleAvoidanceRadius: 1.5
+  customBreadCarryPoint: {fileID: 728422729949473675}
 --- !u!1 &3898563997361661198
 GameObject:
   m_ObjectHideFlags: 0
@@ -407,6 +428,37 @@ Transform:
   m_Father: {fileID: 3907452995952402860}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 2.2394729, y: 1.6233284, z: 1.2550575}
+--- !u!1 &4086763014641943374
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 728422729949473675}
+  m_Layer: 0
+  m_Name: Point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &728422729949473675
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4086763014641943374}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0.683, z: 0.478}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4541141870242516323}
+  m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!1 &4862593387530884300
 GameObject:
   m_ObjectHideFlags: 0
