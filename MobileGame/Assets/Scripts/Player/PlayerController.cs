@@ -182,6 +182,11 @@ public class PlayerController : MonoBehaviour
         currentMoveDirection = Vector3.zero;
         currentMoveSpeed = 0f;
 
+        // 애니메이션 즉시 중지
+        if (useAnimator && playerAnimator != null)
+        {
+            playerAnimator.SetBool("bIsRunning", false);
+        }
     }
 
     private void ProcessVirtualJoystickMovement()
@@ -311,7 +316,17 @@ public class PlayerController : MonoBehaviour
 
     public bool IsMoving()
     {
-        return characterController != null && characterController.velocity.magnitude > 0.1f;
+        // 드래그 중이 아니면 무조건 false
+        if (!isDragging)
+        {
+            return false;
+        }
+
+        // 드래그 중이면서 실제로 움직이고 있거나, 방향이 있으면 true
+        bool isActuallyMoving = characterController != null && characterController.velocity.magnitude > 0.1f;
+        bool hasDirection = currentMoveDirection.magnitude > 0.1f;
+
+        return isActuallyMoving || hasDirection;
     }
 
     // Grabbed 상태 관리 메서드들
