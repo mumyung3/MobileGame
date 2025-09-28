@@ -3,9 +3,13 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
-    [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float moveSensitivity = 1f;
+    [SerializeField] private float maxMoveSpeed = 5f;
     [SerializeField] private bool lockYMovement = true;
+
+    [Header("Virtual Joystick Settings")]
+    [SerializeField] private float joystickRadius = 100f;
+    [SerializeField] private float deadZone = 0.1f;
+    [SerializeField] private bool useVirtualJoystick = true;
 
     [Header("Rotation Settings")]
     [SerializeField] private bool enableRotation = true;
@@ -20,6 +24,12 @@ public class PlayerController : MonoBehaviour
     private Camera playerCamera;
     private Vector3 currentMoveDirection = Vector3.zero;
     private Vector3 lastMoveDirection = Vector3.zero;
+
+    // Virtual Joystick variables
+    private Vector2 joystickCenter = Vector2.zero;
+    private Vector2 currentTouchPos = Vector2.zero;
+    private bool isDragging = false;
+    private float currentMoveSpeed = 0f;
 
     private void Start()
     {
@@ -38,6 +48,7 @@ public class PlayerController : MonoBehaviour
         inputController = FindObjectOfType<PlayerInputController>();
         if (inputController != null)
         {
+            inputController.OnTouchStart += HandleTouchStart;
             inputController.OnDrag += HandleDrag;
             inputController.OnDragEnd += HandleDragEnd;
 
@@ -54,6 +65,7 @@ public class PlayerController : MonoBehaviour
     {
         if (inputController != null)
         {
+            inputController.OnTouchStart -= HandleTouchStart;
             inputController.OnDrag -= HandleDrag;
             inputController.OnDragEnd -= HandleDragEnd;
         }
@@ -61,49 +73,148 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        // 회전 처리
-        if (enableRotation && lastMoveDirection.magnitude > minMoveThreshold)
+        // Virtual Joystick 방식으로 이동 처리
+        if (useVirtualJoystick && isDragging)
         {
-            RotateTowardsMovement(lastMoveDirection);
+            ProcessVirtualJoystickMovement();
+        }
+
+        // 회전 처리
+        if (enableRotation && currentMoveDirection.magnitude > minMoveThreshold)
+        {
+            RotateTowardsMovement(currentMoveDirection);
         }
 
         // 디버그 표시
-        if (showDebugInfo && IsMoving())
+        if (showDebugInfo)
         {
-            Debug.DrawRay(transform.position, lastMoveDirection * 2f, Color.blue, 0.1f);
-            Debug.DrawRay(transform.position, transform.forward * 3f, Color.red, 0.1f);
+            DrawDebugInfo();
         }
+    }
+
+    private void HandleTouchStart(Vector2 position)
+    {
+        joystickCenter = position;
+        currentTouchPos = position;
+        isDragging = true;
+
+        if (showDebugInfo)
+            Debug.Log($"Virtual Joystick center set at: {joystickCenter}");
     }
 
     private void HandleDrag(Vector2 currentPosition, Vector2 deltaMove)
     {
+        if (!useVirtualJoystick)
+        {
+            // 기존 직접 이동 방식
+            HandleDirectMovement(currentPosition, deltaMove);
+            return;
+        }
+
+        // Virtual Joystick 방식
+        currentTouchPos = currentPosition;
+    }
+
+    private void HandleDirectMovement(Vector2 currentPosition, Vector2 deltaMove)
+    {
         if (characterController == null) return;
 
         Vector3 worldDelta = ScreenToWorldMovement(deltaMove);
-        Vector3 movement = worldDelta * moveSensitivity;
+        Vector3 movement = worldDelta;
 
         if (lockYMovement)
             movement.y = 0f;
 
-        // 이동 방향 저장 (회전용)
-        if (movement.magnitude > minMoveThreshold)
-        {
-            lastMoveDirection = movement.normalized;
-        }
-
-        // 직접 즉시 이동 (부드러운 연속 이동)
         characterController.Move(movement);
 
-        if (showDebugInfo)
-            Debug.Log($"Player immediate movement: {movement}, Direction: {lastMoveDirection}");
+        if (movement.magnitude > minMoveThreshold)
+        {
+            currentMoveDirection = movement.normalized;
+        }
     }
 
     private void HandleDragEnd(Vector2 endPosition)
     {
+        isDragging = false;
         currentMoveDirection = Vector3.zero;
+        currentMoveSpeed = 0f;
 
         if (showDebugInfo)
             Debug.Log("Drag ended - Player movement stopped");
+    }
+
+    private void ProcessVirtualJoystickMovement()
+    {
+        if (characterController == null) return;
+
+        // 조이스틱 중심에서 현재 터치 위치까지의 벡터
+        Vector2 offset = currentTouchPos - joystickCenter;
+        float distance = offset.magnitude;
+
+        // 데드존 체크
+        if (distance < deadZone)
+        {
+            currentMoveDirection = Vector3.zero;
+            currentMoveSpeed = 0f;
+            return;
+        }
+
+        // 조이스틱 반지름을 벗어나지 않도록 제한
+        if (distance > joystickRadius)
+        {
+            offset = offset.normalized * joystickRadius;
+            distance = joystickRadius;
+        }
+
+        // 이동 강도 계산 (0~1)
+        float moveIntensity = (distance - deadZone) / (joystickRadius - deadZone);
+        currentMoveSpeed = moveIntensity * maxMoveSpeed;
+
+        // 화면 좌표를 월드 좌표로 변환
+        Vector3 worldDirection = ScreenToWorldDirection(offset.normalized);
+
+        if (lockYMovement)
+            worldDirection.y = 0f;
+
+        currentMoveDirection = worldDirection.normalized;
+
+        // 실제 이동 적용
+        Vector3 movement = currentMoveDirection * currentMoveSpeed * Time.deltaTime;
+        characterController.Move(movement);
+    }
+
+    private Vector3 ScreenToWorldDirection(Vector2 screenDirection)
+    {
+        if (playerCamera == null) return Vector3.zero;
+
+        Vector3 worldDir = playerCamera.transform.TransformDirection(new Vector3(screenDirection.x, 0, screenDirection.y));
+        worldDir.y = 0; // Y축 제거
+        return worldDir.normalized;
+    }
+
+    private void DrawDebugInfo()
+    {
+        if (!isDragging) return;
+
+        // 조이스틱 센터 표시
+        Vector3 centerWorld = playerCamera.ScreenToWorldPoint(new Vector3(joystickCenter.x, joystickCenter.y, 10f));
+        Debug.DrawRay(centerWorld, Vector3.up * 2f, Color.green, 0.1f);
+
+        // 현재 터치 위치 표시
+        Vector3 touchWorld = playerCamera.ScreenToWorldPoint(new Vector3(currentTouchPos.x, currentTouchPos.y, 10f));
+        Debug.DrawRay(touchWorld, Vector3.up * 2f, Color.yellow, 0.1f);
+
+        // 조이스틱 연결선
+        Debug.DrawLine(centerWorld, touchWorld, Color.cyan, 0.1f);
+
+        // 플레이어 이동 방향
+        if (currentMoveDirection.magnitude > 0.01f)
+        {
+            Debug.DrawRay(transform.position, currentMoveDirection * 3f, Color.blue, 0.1f);
+        }
+
+        // 플레이어가 바라보는 방향
+        Debug.DrawRay(transform.position, transform.forward * 2f, Color.red, 0.1f);
     }
 
     private void RotateTowardsMovement(Vector3 moveDirection)
@@ -124,9 +235,19 @@ public class PlayerController : MonoBehaviour
         return worldDelta - worldOrigin;
     }
 
-    public void SetMoveSpeed(float newSpeed)
+    public void SetMaxMoveSpeed(float newSpeed)
     {
-        moveSpeed = newSpeed;
+        maxMoveSpeed = newSpeed;
+    }
+
+    public float GetCurrentMoveSpeed()
+    {
+        return currentMoveSpeed;
+    }
+
+    public void SetJoystickRadius(float radius)
+    {
+        joystickRadius = radius;
     }
 
     public void SetMoveDirection(Vector3 direction)
