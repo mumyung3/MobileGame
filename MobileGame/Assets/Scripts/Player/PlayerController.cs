@@ -5,7 +5,6 @@ public class PlayerController : MonoBehaviour
     [Header("Movement Settings")]
     [SerializeField] private float maxMoveSpeed = 5f;
     [SerializeField] private bool lockYMovement = true;
-    [SerializeField] private float gravity = -9.81f;
 
     [Header("Virtual Joystick Settings")]
     [SerializeField] private float joystickRadius = 100f;
@@ -43,9 +42,6 @@ public class PlayerController : MonoBehaviour
 
     // Animation state
     private bool isGrabbed = false;
-
-    // Physics
-    private Vector3 velocity = Vector3.zero;
 
     private void Start()
     {
@@ -130,9 +126,6 @@ public class PlayerController : MonoBehaviour
             UpdateCameraPosition();
         }
 
-        // 중력 적용
-        ApplyGravity();
-
         // 애니메이터 파라미터 업데이트
         if (useAnimator && playerAnimator != null)
         {
@@ -177,9 +170,7 @@ public class PlayerController : MonoBehaviour
         Vector3 movement = worldDelta;
 
         if (lockYMovement)
-            movement.y = velocity.y * Time.deltaTime; // 중력만 적용
-        else
-            movement.y += velocity.y * Time.deltaTime; // 이동 + 중력
+            movement.y = 0f;
 
         characterController.Move(movement);
 
@@ -234,9 +225,8 @@ public class PlayerController : MonoBehaviour
 
         currentMoveDirection = worldDirection.normalized;
 
-        // 실제 이동 적용 (Y축 강제 고정)
+        // 실제 이동 적용
         Vector3 movement = currentMoveDirection * currentMoveSpeed * Time.deltaTime;
-        movement.y = velocity.y * Time.deltaTime; // 중력 적용
         characterController.Move(movement);
     }
 
@@ -244,8 +234,8 @@ public class PlayerController : MonoBehaviour
     {
         if (playerCamera == null) return Vector3.zero;
 
-        // 카메라 회전 무시하고 월드 좌표계 기준으로 방향 계산
-        Vector3 worldDir = new Vector3(screenDirection.x, 0, screenDirection.y);
+        Vector3 worldDir = playerCamera.transform.TransformDirection(new Vector3(screenDirection.x, 0, screenDirection.y));
+        worldDir.y = 0; // Y축 제거
         return worldDir.normalized;
     }
 
@@ -297,22 +287,6 @@ public class PlayerController : MonoBehaviour
         else
         {
             playerCamera.transform.position = targetPosition;
-        }
-    }
-
-    private void ApplyGravity()
-    {
-        if (characterController == null) return;
-
-        if (characterController.isGrounded)
-        {
-            // 바닥에 있으면 Y velocity 초기화
-            velocity.y = 0f;
-        }
-        else
-        {
-            // 공중에 있으면 중력 적용
-            velocity.y += gravity * Time.deltaTime;
         }
     }
 
@@ -370,33 +344,7 @@ public class PlayerController : MonoBehaviour
 
     public bool IsMoving()
     {
-        if (characterController == null) return false;
-
-        // 가상 조이스틱 방식일 때는 드래그 상태와 이동 속도로 판단
-        if (useVirtualJoystick)
-        {
-            bool moving = isDragging && currentMoveSpeed > 0.1f;
-
-            if (showDebugInfo)
-            {
-                Debug.Log($"VirtualJoystick - isDragging: {isDragging}, currentMoveSpeed: {currentMoveSpeed:F3}, IsMoving: {moving}");
-            }
-
-            return moving;
-        }
-        else
-        {
-            // 직접 이동 방식일 때는 velocity로 판단
-            float velocityMagnitude = characterController.velocity.magnitude;
-            bool moving = velocityMagnitude > 0.5f;
-
-            if (showDebugInfo)
-            {
-                Debug.Log($"Direct - Velocity: {velocityMagnitude:F3}, IsMoving: {moving}");
-            }
-
-            return moving;
-        }
+        return characterController != null && characterController.velocity.magnitude > 0.1f;
     }
 
     // Grabbed 상태 관리 메서드들
