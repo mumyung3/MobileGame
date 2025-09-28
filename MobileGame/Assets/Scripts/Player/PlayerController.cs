@@ -5,6 +5,7 @@ public class PlayerController : MonoBehaviour
     [Header("Movement Settings")]
     [SerializeField] private float maxMoveSpeed = 5f;
     [SerializeField] private bool lockYMovement = true;
+    [SerializeField] private float gravity = -9.81f;
 
     [Header("Virtual Joystick Settings")]
     [SerializeField] private float joystickRadius = 100f;
@@ -19,9 +20,18 @@ public class PlayerController : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool showDebugInfo = true;
 
+    [Header("Camera Follow")]
+    [SerializeField] private bool followCamera = true;
+    [SerializeField] private Vector3 cameraOffset = new Vector3(0, 5, -5);
+    [SerializeField] private float cameraFollowSpeed = 5f;
+
+    [Header("Animation")]
+    [SerializeField] private bool useAnimator = true;
+
     private CharacterController characterController;
     private PlayerInputController inputController;
     private Camera playerCamera;
+    private Animator playerAnimator;
     private Vector3 currentMoveDirection = Vector3.zero;
     private Vector3 lastMoveDirection = Vector3.zero;
 
@@ -31,6 +41,9 @@ public class PlayerController : MonoBehaviour
     private bool isDragging = false;
     private float currentMoveSpeed = 0f;
 
+    // Animation state
+    private bool isGrabbed = false;
+
     private void Start()
     {
         characterController = GetComponent<CharacterController>();
@@ -39,9 +52,32 @@ public class PlayerController : MonoBehaviour
             Debug.LogError("CharacterController component not found! Please add CharacterController to this GameObject.");
         }
 
+        // 메인 카메라 찾기
         playerCamera = Camera.main;
+        if (playerCamera == null)
+        {
+            playerCamera = FindObjectOfType<Camera>();
+        }
+
+        // Animator 컴포넌트 찾기
+        if (useAnimator)
+        {
+            playerAnimator = GetComponent<Animator>();
+            if (playerAnimator == null)
+            {
+                playerAnimator = GetComponentInChildren<Animator>();
+            }
+
+            if (playerAnimator == null)
+            {
+                Debug.LogWarning("Animator component not found! Animation updates will be disabled.");
+                useAnimator = false;
+            }
+        }
+
         FindAndConnectInputController();
     }
+
 
     private void FindAndConnectInputController()
     {
@@ -79,10 +115,22 @@ public class PlayerController : MonoBehaviour
             ProcessVirtualJoystickMovement();
         }
 
-        // 회전 처리
+        // 플레이어 회전 처리
         if (enableRotation && currentMoveDirection.magnitude > minMoveThreshold)
         {
             RotateTowardsMovement(currentMoveDirection);
+        }
+
+        // 카메라 따라가기
+        if (followCamera && playerCamera != null)
+        {
+            UpdateCameraPosition();
+        }
+
+        // 애니메이터 파라미터 업데이트
+        if (useAnimator && playerAnimator != null)
+        {
+            UpdateAnimatorParameters();
         }
 
         // 디버그 표시
@@ -178,8 +226,9 @@ public class PlayerController : MonoBehaviour
 
         currentMoveDirection = worldDirection.normalized;
 
-        // 실제 이동 적용
+        // 실제 이동 적용 (Y축 강제 고정)
         Vector3 movement = currentMoveDirection * currentMoveSpeed * Time.deltaTime;
+        movement.y = 0f; // Y축 이동 완전 차단
         characterController.Move(movement);
     }
 
@@ -187,8 +236,8 @@ public class PlayerController : MonoBehaviour
     {
         if (playerCamera == null) return Vector3.zero;
 
-        Vector3 worldDir = playerCamera.transform.TransformDirection(new Vector3(screenDirection.x, 0, screenDirection.y));
-        worldDir.y = 0; // Y축 제거
+        // 카메라 회전 무시하고 월드 좌표계 기준으로 방향 계산
+        Vector3 worldDir = new Vector3(screenDirection.x, 0, screenDirection.y);
         return worldDir.normalized;
     }
 
@@ -223,6 +272,39 @@ public class PlayerController : MonoBehaviour
 
         Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+    }
+
+    private void UpdateCameraPosition()
+    {
+        Vector3 targetPosition = transform.position + cameraOffset;
+
+        if (cameraFollowSpeed > 0)
+        {
+            playerCamera.transform.position = Vector3.Lerp(
+                playerCamera.transform.position,
+                targetPosition,
+                cameraFollowSpeed * Time.deltaTime
+            );
+        }
+        else
+        {
+            playerCamera.transform.position = targetPosition;
+        }
+    }
+
+    private void UpdateAnimatorParameters()
+    {
+        // bisrunning: 현재 움직이고 있는지 체크
+        bool isRunning = IsMoving();
+        playerAnimator.SetBool("bIsRunning", isRunning);
+
+        // bisgrabbed: 잡고 있는 상태인지 체크
+        playerAnimator.SetBool("bIsGrabbed", isGrabbed);
+
+        if (showDebugInfo)
+        {
+            Debug.Log($"Animator - bisrunning: {isRunning}, bisgrabbed: {isGrabbed}");
+        }
     }
 
     private Vector3 ScreenToWorldMovement(Vector2 screenDelta)
@@ -264,6 +346,43 @@ public class PlayerController : MonoBehaviour
 
     public bool IsMoving()
     {
-        return characterController != null && characterController.velocity.magnitude > 0.1f;
+        if (characterController == null) return false;
+
+        // 가상 조이스틱 방식일 때는 드래그 상태와 이동 속도로 판단
+        if (useVirtualJoystick)
+        {
+            bool moving = isDragging && currentMoveSpeed > 0.1f;
+
+            if (showDebugInfo)
+            {
+                Debug.Log($"VirtualJoystick - isDragging: {isDragging}, currentMoveSpeed: {currentMoveSpeed:F3}, IsMoving: {moving}");
+            }
+
+            return moving;
+        }
+        else
+        {
+            // 직접 이동 방식일 때는 velocity로 판단
+            float velocityMagnitude = characterController.velocity.magnitude;
+            bool moving = velocityMagnitude > 0.5f;
+
+            if (showDebugInfo)
+            {
+                Debug.Log($"Direct - Velocity: {velocityMagnitude:F3}, IsMoving: {moving}");
+            }
+
+            return moving;
+        }
+    }
+
+    // Grabbed 상태 관리 메서드들
+    public void SetGrabbed(bool grabbed)
+    {
+        isGrabbed = grabbed;
+    }
+
+    public bool IsGrabbed()
+    {
+        return isGrabbed;
     }
 }
