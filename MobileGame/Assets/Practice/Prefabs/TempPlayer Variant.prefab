@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4543060649152533156
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2033658170206715735}
+  m_Layer: 0
+  m_Name: Point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2033658170206715735
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4543060649152533156}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.67, z: 0.66}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3747113825326111549}
+  m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &794054461431600734
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17,7 +48,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3769144362882373593, guid: 7d7589d2636d44e64a0446841792863e, type: 3}
       propertyPath: m_Name
-      value: TempPlayer Variant
+      value: TempPlayer
       objectReference: {fileID: 0}
     - target: {fileID: 4541141870242516323, guid: 7d7589d2636d44e64a0446841792863e, type: 3}
       propertyPath: m_RootOrder
@@ -29,7 +60,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4541141870242516323, guid: 7d7589d2636d44e64a0446841792863e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.8
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4541141870242516323, guid: 7d7589d2636d44e64a0446841792863e, type: 3}
       propertyPath: m_LocalPosition.z
@@ -65,6 +96,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7d7589d2636d44e64a0446841792863e, type: 3}
+--- !u!4 &3747113825326111549 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4541141870242516323, guid: 7d7589d2636d44e64a0446841792863e, type: 3}
+  m_PrefabInstance: {fileID: 794054461431600734}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &4560946337011777927 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3769144362882373593, guid: 7d7589d2636d44e64a0446841792863e, type: 3}
@@ -102,9 +138,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerInput: {fileID: 681397550}
   mainCamera: {fileID: 0}
-  showDebugInfo: 1
-  lastTouchPosition: {x: 0, y: 0}
-  isTouching: 0
   dragThreshold: 10
   startTouchPosition: {x: 0, y: 0}
   isDragging: 0
@@ -122,74 +155,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerInputController: {fileID: 681397547}
   autoCreateInputController: 1
-  showDebugGUI: 1
-  debugStyle:
-    m_Name: 
-    m_Normal:
-      m_Background: {fileID: 0}
-      m_ScaledBackgrounds: []
-      m_TextColor: {r: 0, g: 0, b: 0, a: 1}
-    m_Hover:
-      m_Background: {fileID: 0}
-      m_ScaledBackgrounds: []
-      m_TextColor: {r: 0, g: 0, b: 0, a: 1}
-    m_Active:
-      m_Background: {fileID: 0}
-      m_ScaledBackgrounds: []
-      m_TextColor: {r: 0, g: 0, b: 0, a: 1}
-    m_Focused:
-      m_Background: {fileID: 0}
-      m_ScaledBackgrounds: []
-      m_TextColor: {r: 0, g: 0, b: 0, a: 1}
-    m_OnNormal:
-      m_Background: {fileID: 0}
-      m_ScaledBackgrounds: []
-      m_TextColor: {r: 0, g: 0, b: 0, a: 1}
-    m_OnHover:
-      m_Background: {fileID: 0}
-      m_ScaledBackgrounds: []
-      m_TextColor: {r: 0, g: 0, b: 0, a: 1}
-    m_OnActive:
-      m_Background: {fileID: 0}
-      m_ScaledBackgrounds: []
-      m_TextColor: {r: 0, g: 0, b: 0, a: 1}
-    m_OnFocused:
-      m_Background: {fileID: 0}
-      m_ScaledBackgrounds: []
-      m_TextColor: {r: 0, g: 0, b: 0, a: 1}
-    m_Border:
-      m_Left: 0
-      m_Right: 0
-      m_Top: 0
-      m_Bottom: 0
-    m_Margin:
-      m_Left: 0
-      m_Right: 0
-      m_Top: 0
-      m_Bottom: 0
-    m_Padding:
-      m_Left: 0
-      m_Right: 0
-      m_Top: 0
-      m_Bottom: 0
-    m_Overflow:
-      m_Left: 0
-      m_Right: 0
-      m_Top: 0
-      m_Bottom: 0
-    m_Font: {fileID: 0}
-    m_FontSize: 0
-    m_FontStyle: 0
-    m_Alignment: 0
-    m_WordWrap: 0
-    m_RichText: 1
-    m_TextClipping: 0
-    m_ImagePosition: 0
-    m_ContentOffset: {x: 0, y: 0}
-    m_FixedWidth: 0
-    m_FixedHeight: 0
-    m_StretchWidth: 1
-    m_StretchHeight: 0
 --- !u!114 &681397549
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -210,10 +175,9 @@ MonoBehaviour:
   enableRotation: 1
   rotationSpeed: 10
   minMoveThreshold: 0.01
-  showDebugInfo: 1
   followCamera: 1
-  cameraOffset: {x: 0, y: 5, z: -5}
-  cameraFollowSpeed: 5
+  cameraOffset: {x: 0, y: 5.5, z: -6}
+  cameraFollowSpeed: 30
   useAnimator: 1
 --- !u!114 &681397550
 MonoBehaviour:
@@ -257,3 +221,65 @@ MonoBehaviour:
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
+--- !u!114 &681397554
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4560946337011777927}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cfc5fe19d8a24595850da56d0941cd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  totalBreadCount: 0
+  maxBreadCapacity: 10
+  OnBreadCountChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnCapacityReached:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &7214433616264948193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4560946337011777927}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c2c33eb98e27488f969c264f5a0db11, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  stackPoint: {fileID: 0}
+  stackedBreadPrefab: {fileID: 0}
+  maxStackCount: 10
+  stackHeight: 0.3
+  stackOffset: {x: 0, y: 0, z: 0}
+  stackAnimationDuration: 0.5
+  stackCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4

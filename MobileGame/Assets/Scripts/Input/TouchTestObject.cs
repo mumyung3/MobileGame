@@ -26,7 +26,6 @@ public class TouchTestObject : MonoBehaviour, IInteractable
     
     public void OnInteract()
     {
-        Debug.Log($"{gameObject.name} was touched/clicked!");
         
         // Visual feedback
         StartCoroutine(InteractAnimation());

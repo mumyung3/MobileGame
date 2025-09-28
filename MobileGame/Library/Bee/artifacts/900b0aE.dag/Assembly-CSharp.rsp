@@ -360,6 +360,11 @@
 "Assets/Scripts/Input/InputSystemManager.cs"
 "Assets/Scripts/Input/PlayerInputController.cs"
 "Assets/Scripts/Input/TouchTestObject.cs"
+"Assets/Scripts/Items/Bread.cs"
+"Assets/Scripts/Items/BreadTrigger.cs"
+"Assets/Scripts/Managers/CollectionManager.cs"
+"Assets/Scripts/Managers/OvenManager.cs"
+"Assets/Scripts/Player/PlayerBreadStack.cs"
 "Assets/Scripts/Player/PlayerController.cs"
 "Assets/Scripts/PlayerCharacter.cs"
 -langversion:9.0

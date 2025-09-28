@@ -6,6 +6,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float maxMoveSpeed = 5f;
     [SerializeField] private bool lockYMovement = true;
 
+    private float initialYPosition;
+
     [Header("Virtual Joystick Settings")]
     [SerializeField] private float joystickRadius = 100f;
     [SerializeField] private float deadZone = 0.1f;
@@ -16,8 +18,6 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float rotationSpeed = 10f;
     [SerializeField] private float minMoveThreshold = 0.1f;
 
-    [Header("Debug")]
-    [SerializeField] private bool showDebugInfo = true;
 
     [Header("Camera Follow")]
     [SerializeField] private bool followCamera = true;
@@ -45,10 +45,12 @@ public class PlayerController : MonoBehaviour
 
     private void Start()
     {
+        // 시작 시 Y축 위치 저장
+        initialYPosition = transform.position.y;
+
         characterController = GetComponent<CharacterController>();
         if (characterController == null)
         {
-            Debug.LogError("CharacterController component not found! Please add CharacterController to this GameObject.");
         }
 
         // 메인 카메라 찾기
@@ -69,7 +71,6 @@ public class PlayerController : MonoBehaviour
 
             if (playerAnimator == null)
             {
-                Debug.LogWarning("Animator component not found! Animation updates will be disabled.");
                 useAnimator = false;
             }
         }
@@ -87,12 +88,9 @@ public class PlayerController : MonoBehaviour
             inputController.OnDrag += HandleDrag;
             inputController.OnDragEnd += HandleDragEnd;
 
-            if (showDebugInfo)
-                Debug.Log("PlayerController connected to InputController");
         }
         else
         {
-            Debug.LogWarning("PlayerInputController not found!");
         }
     }
 
@@ -132,10 +130,10 @@ public class PlayerController : MonoBehaviour
             UpdateAnimatorParameters();
         }
 
-        // 디버그 표시
-        if (showDebugInfo)
+        // Y축을 바닥에 고정
+        if (lockYMovement)
         {
-            DrawDebugInfo();
+            ForceGroundPosition();
         }
     }
 
@@ -145,8 +143,6 @@ public class PlayerController : MonoBehaviour
         currentTouchPos = position;
         isDragging = true;
 
-        if (showDebugInfo)
-            Debug.Log($"Virtual Joystick center set at: {joystickCenter}");
     }
 
     private void HandleDrag(Vector2 currentPosition, Vector2 deltaMove)
@@ -186,8 +182,6 @@ public class PlayerController : MonoBehaviour
         currentMoveDirection = Vector3.zero;
         currentMoveSpeed = 0f;
 
-        if (showDebugInfo)
-            Debug.Log("Drag ended - Player movement stopped");
     }
 
     private void ProcessVirtualJoystickMovement()
@@ -225,8 +219,9 @@ public class PlayerController : MonoBehaviour
 
         currentMoveDirection = worldDirection.normalized;
 
-        // 실제 이동 적용
+        // 실제 이동 적용 (Y축 강제로 0으로 설정)
         Vector3 movement = currentMoveDirection * currentMoveSpeed * Time.deltaTime;
+        movement.y = 0f; // Y축 이동 완전 차단
         characterController.Move(movement);
     }
 
@@ -239,30 +234,6 @@ public class PlayerController : MonoBehaviour
         return worldDir.normalized;
     }
 
-    private void DrawDebugInfo()
-    {
-        if (!isDragging) return;
-
-        // 조이스틱 센터 표시
-        Vector3 centerWorld = playerCamera.ScreenToWorldPoint(new Vector3(joystickCenter.x, joystickCenter.y, 10f));
-        Debug.DrawRay(centerWorld, Vector3.up * 2f, Color.green, 0.1f);
-
-        // 현재 터치 위치 표시
-        Vector3 touchWorld = playerCamera.ScreenToWorldPoint(new Vector3(currentTouchPos.x, currentTouchPos.y, 10f));
-        Debug.DrawRay(touchWorld, Vector3.up * 2f, Color.yellow, 0.1f);
-
-        // 조이스틱 연결선
-        Debug.DrawLine(centerWorld, touchWorld, Color.cyan, 0.1f);
-
-        // 플레이어 이동 방향
-        if (currentMoveDirection.magnitude > 0.01f)
-        {
-            Debug.DrawRay(transform.position, currentMoveDirection * 3f, Color.blue, 0.1f);
-        }
-
-        // 플레이어가 바라보는 방향
-        Debug.DrawRay(transform.position, transform.forward * 2f, Color.red, 0.1f);
-    }
 
     private void RotateTowardsMovement(Vector3 moveDirection)
     {
@@ -299,10 +270,6 @@ public class PlayerController : MonoBehaviour
         // bisgrabbed: 잡고 있는 상태인지 체크
         playerAnimator.SetBool("bIsGrabbed", isGrabbed);
 
-        if (showDebugInfo)
-        {
-            Debug.Log($"Animator - bisrunning: {isRunning}, bisgrabbed: {isGrabbed}");
-        }
     }
 
     private Vector3 ScreenToWorldMovement(Vector2 screenDelta)
@@ -356,5 +323,14 @@ public class PlayerController : MonoBehaviour
     public bool IsGrabbed()
     {
         return isGrabbed;
+    }
+
+    private void ForceGroundPosition()
+    {
+        Vector3 currentPos = transform.position;
+        if (Mathf.Abs(currentPos.y - initialYPosition) > 0.01f)
+        {
+            transform.position = new Vector3(currentPos.x, initialYPosition, currentPos.z);
+        }
     }
 }

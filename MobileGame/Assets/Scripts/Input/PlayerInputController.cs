@@ -11,10 +11,8 @@ public class PlayerInputController : MonoBehaviour
     [SerializeField] private PlayerInput playerInput;
     [SerializeField] private Camera mainCamera;
     
-    [Header("Debug")]
-    [SerializeField] private bool showDebugInfo = true;
-    [SerializeField] private Vector2 lastTouchPosition;
-    [SerializeField] private bool isTouching;
+    private Vector2 lastTouchPosition;
+    private bool isTouching;
 
     [Header("Drag Settings")]
     [SerializeField] private float dragThreshold = 10f;
@@ -98,8 +96,6 @@ public class PlayerInputController : MonoBehaviour
                     isDragging = true;
                     OnDragStart?.Invoke(startTouchPosition);
 
-                    if (showDebugInfo)
-                        Debug.Log($"Drag Started from: {startTouchPosition}");
                 }
             }
 
@@ -109,19 +105,12 @@ public class PlayerInputController : MonoBehaviour
                 Vector2 deltaMove = currentTouchPos - lastTouchPosition;
                 OnDrag?.Invoke(currentTouchPos, deltaMove);
 
-                if (showDebugInfo)
-                {
-                    Debug.DrawRay(GetWorldPosition(currentTouchPos), Vector3.up * 3f, Color.magenta);
-                    Debug.Log($"Dragging at: {currentTouchPos}, Delta: {deltaMove}");
-                }
             }
             else
             {
                 // Regular touch hold (not dragging yet)
                 OnTouchHold?.Invoke(currentTouchPos);
 
-                if (showDebugInfo)
-                    Debug.DrawRay(GetWorldPosition(currentTouchPos), Vector3.up * 2f, Color.yellow);
             }
 
             lastTouchPosition = currentTouchPos;
@@ -138,11 +127,6 @@ public class PlayerInputController : MonoBehaviour
 
         OnTouchStart?.Invoke(touchPos);
 
-        if (showDebugInfo)
-        {
-            Debug.Log($"Touch Started at: {touchPos}");
-            Debug.DrawRay(GetWorldPosition(touchPos), Vector3.up * 5f, Color.green, 1f);
-        }
     }
     
     private void OnTouchPerformed(InputAction.CallbackContext context)
@@ -154,11 +138,6 @@ public class PlayerInputController : MonoBehaviour
         // Check for raycast hit
         CheckForObjectHit(touchPos);
         
-        if (showDebugInfo)
-        {
-            Debug.Log($"Tap Performed at: {touchPos}");
-            Debug.DrawRay(GetWorldPosition(touchPos), Vector3.up * 3f, Color.cyan, 0.5f);
-        }
     }
     
     private void OnTouchCanceled(InputAction.CallbackContext context)
@@ -172,17 +151,10 @@ public class PlayerInputController : MonoBehaviour
             OnDragEnd?.Invoke(touchPos);
             isDragging = false;
 
-            if (showDebugInfo)
-                Debug.Log($"Drag Ended at: {touchPos}");
         }
 
         OnTouchEnd?.Invoke(touchPos);
 
-        if (showDebugInfo)
-        {
-            Debug.Log($"Touch Ended at: {touchPos}");
-            Debug.DrawRay(GetWorldPosition(touchPos), Vector3.up * 5f, Color.red, 1f);
-        }
     }
     
     private void CheckForObjectHit(Vector2 screenPosition)
@@ -193,8 +165,6 @@ public class PlayerInputController : MonoBehaviour
         
         if (Physics.Raycast(ray, out hit, 100f))
         {
-            if (showDebugInfo)
-                Debug.Log($"Hit 3D Object: {hit.collider.gameObject.name}");
             
             // Check for interactable components
             var interactable = hit.collider.GetComponent<IInteractable>();
@@ -208,8 +178,6 @@ public class PlayerInputController : MonoBehaviour
         RaycastHit2D hit2D = Physics2D.Raycast(mainCamera.ScreenToWorldPoint(screenPosition), Vector2.zero);
         if (hit2D.collider != null)
         {
-            if (showDebugInfo)
-                Debug.Log($"Hit 2D Object: {hit2D.collider.gameObject.name}");
             
             var interactable2D = hit2D.collider.GetComponent<IInteractable>();
             if (interactable2D != null)

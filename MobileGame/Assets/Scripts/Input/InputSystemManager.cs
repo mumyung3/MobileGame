@@ -27,9 +27,6 @@ public class InputSystemManager : MonoBehaviour
     [SerializeField] private PlayerInputController playerInputController;
     [SerializeField] private bool autoCreateInputController = true;
     
-    [Header("Debug Settings")]
-    [SerializeField] private bool showDebugGUI = true;
-    [SerializeField] private GUIStyle debugStyle;
     
     private Vector2 currentTouchPosition;
     private bool isTouching;
@@ -69,7 +66,6 @@ public class InputSystemManager : MonoBehaviour
                 // Add our controller
                 playerInputController = inputControllerGO.AddComponent<PlayerInputController>();
                 
-                Debug.Log("Created PlayerInputController automatically");
             }
         }
         
@@ -97,21 +93,18 @@ public class InputSystemManager : MonoBehaviour
             currentDevice = "Mouse";
         }
         
-        Debug.Log($"Detected Input Device: {currentDevice}");
     }
     
     private void HandleTouchStart(Vector2 position)
     {
         currentTouchPosition = position;
         isTouching = true;
-        Debug.Log($"Touch Started at: {position}");
     }
 
     private void HandleTouchHold(Vector2 position)
     {
         currentTouchPosition = position;
         // Can be used for drag operations
-        //Debug.Log($"Touch Holding at: {position}");
         
     }
     
@@ -119,46 +112,12 @@ public class InputSystemManager : MonoBehaviour
     {
         currentTouchPosition = position;
         isTouching = false;
-        Debug.Log($"Touch Ended at: {position}");
     }
     
     private void HandleTap(Vector2 position)
     {
-        Debug.Log($"Tap detected at: {position}");
     }
     
-    private void OnGUI()
-    {
-        if (!showDebugGUI) return;
-        
-        // Setup debug style if not initialized
-        if (debugStyle == null)
-        {
-            debugStyle = new GUIStyle(GUI.skin.label);
-            debugStyle.fontSize = 20;
-            debugStyle.normal.textColor = Color.white;
-        }
-        
-        // Create background box
-        GUI.Box(new Rect(10, 10, 300, 150), "");
-        
-        // Display debug info
-        int yOffset = 15;
-        GUI.Label(new Rect(15, yOffset, 290, 30), $"Device: {currentDevice}", debugStyle);
-        yOffset += 30;
-        
-        GUI.Label(new Rect(15, yOffset, 290, 30), $"Is Touching: {isTouching}", debugStyle);
-        yOffset += 30;
-        
-        GUI.Label(new Rect(15, yOffset, 290, 30), $"Position: {currentTouchPosition.x:F0}, {currentTouchPosition.y:F0}", debugStyle);
-        yOffset += 30;
-        
-        if (playerInputController != null)
-        {
-            var allTouches = playerInputController.GetAllTouchPositions();
-            GUI.Label(new Rect(15, yOffset, 290, 30), $"Active Touches: {allTouches.Count}", debugStyle);
-        }
-    }
     
     public Vector2 GetCurrentTouchPosition()
     {
