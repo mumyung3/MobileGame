@@ -9,6 +9,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4658675040294514590}
+  - component: {fileID: 1151673059043842839}
+  - component: {fileID: 459436815}
   m_Layer: 0
   m_Name: Upgrade
   m_TagString: Untagged
@@ -40,6 +42,43 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1151673059043842839
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4658675040294514591}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 50fc9390236b04769a19265fd3ca66c9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerTag: Player
+  detectionRadius: 2
+  useBoxCollider: 0
+  boxSize: {x: 2, y: 2, z: 2}
+  colliderOffset: {x: 0, y: 0, z: 0}
+  activateOnce: 1
+  requireMoney: 1
+  upgradeCost: 30
+  autoFindMoneyManager: 1
+  activateAllChildren: 0
+  specificChildren: []
+  showDebugLogs: 1
+--- !u!65 &459436815
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4658675040294514591}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 1, y: 0, z: -1.5}
 --- !u!1001 &17642860412540965
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -47,6 +86,14 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 4658675040294514590}
     m_Modifications:
+    - target: {fileID: 2141466687786625905, guid: c498767f5efd247e5b65daece2ca2d97, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2590966772105322492, guid: c498767f5efd247e5b65daece2ca2d97, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3183985604764857507, guid: c498767f5efd247e5b65daece2ca2d97, type: 3}
       propertyPath: m_RootOrder
       value: 1
@@ -89,6 +136,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3183985604764857507, guid: c498767f5efd247e5b65daece2ca2d97, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3630181170987643858, guid: c498767f5efd247e5b65daece2ca2d97, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5208708229668759942, guid: c498767f5efd247e5b65daece2ca2d97, type: 3}
+      propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5825908151422782372, guid: c498767f5efd247e5b65daece2ca2d97, type: 3}
