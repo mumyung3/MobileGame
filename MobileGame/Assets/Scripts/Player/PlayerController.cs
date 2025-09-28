@@ -130,7 +130,7 @@ public class PlayerController : MonoBehaviour
             UpdateAnimatorParameters();
         }
 
-        // Y축을 바닥에 고정
+        // Y축을 초기 위치에 고정
         if (lockYMovement)
         {
             ForceGroundPosition();
