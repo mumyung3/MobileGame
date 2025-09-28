@@ -23,7 +23,12 @@ public class CustomerManager : MonoBehaviour
     [SerializeField] private float initialSpawnDelay = 5f;
     [SerializeField] private int maxCustomersWithoutBread = 2;
 
+    [Header("Counter Queue Settings")]
+    [SerializeField] private float queueSpacing = 2f;
+    [SerializeField] private Vector3 queueDirection = Vector3.back; // z축 음의 방향으로 줄 세우기
+
     private List<Customer> activeCustomers = new List<Customer>();
+    private List<Customer> counterQueueCustomers = new List<Customer>(); // 도착 순서대로 정렬된 대기열
     private Coroutine spawnCoroutine;
     private bool isSpawning = false;
 
@@ -301,6 +306,156 @@ public class CustomerManager : MonoBehaviour
         return null;
     }
 
+    // 고객이 대기열에 참가 요청 (빵을 집은 후 호출) - 예약만 하고 위치는 나중에
+    public Vector3 RequestJoinQueue(Customer customer)
+    {
+        if (counterPosition == null) return Vector3.zero;
+
+        Debug.Log($"[CustomerManager] 고객 {customer.name}이 대기열 참가 요청");
+
+        // 예약만 하고 실제 위치는 도착했을 때 결정
+        // 현재는 대략적인 위치만 반환 (실제 순서는 도착 시 결정)
+        int tempIndex = counterQueueCustomers.Count; // 현재 대기열 뒤쪽 예상 위치
+        Vector3 tempPosition = CalculateValidQueuePosition(tempIndex);
+
+        Debug.Log($"[CustomerManager] 고객 {customer.name}에게 임시 목표 위치 제공: {tempPosition}");
+        return tempPosition;
+    }
+
+    // 고객이 실제로 대기열 위치에 도착했을 때 호출 - 도착 순서대로 배치
+    public Vector3 OnCustomerArrivedAtQueue(Customer customer)
+    {
+        Debug.Log($"[CustomerManager] 고객 {customer.name}이 대기열에 실제 도착 - 도착 순서 기록");
+
+        // 도착한 순서대로 대기열에 추가
+        if (!counterQueueCustomers.Contains(customer))
+        {
+            counterQueueCustomers.Add(customer);
+            Debug.Log($"[CustomerManager] 고객 {customer.name}을 대기열 {counterQueueCustomers.Count}번째 위치에 추가");
+        }
+
+        // 도착 순서에 따른 실제 위치 계산
+        int actualQueueIndex = counterQueueCustomers.IndexOf(customer);
+        Vector3 finalPosition = CalculateValidQueuePosition(actualQueueIndex);
+
+        Debug.Log($"[CustomerManager] 고객 {customer.name}의 최종 대기열 위치: {actualQueueIndex + 1}번째, 위치: {finalPosition}");
+
+        // 이미 대기열에 있던 다른 고객들의 위치도 업데이트 (밀려날 수 있음)
+        UpdateAllQueuePositions();
+
+        return finalPosition;
+    }
+
+    // NavMesh에 맞는 유효한 대기열 위치 계산
+    private Vector3 CalculateValidQueuePosition(int queueIndex)
+    {
+        if (counterPosition == null) return Vector3.zero;
+
+        // 기본 위치 계산
+        Vector3 rawPosition = counterPosition.position +
+            counterPosition.TransformDirection(queueDirection) * ((queueIndex + 1) * queueSpacing);
+
+        // NavMesh에서 유효한 위치 찾기
+        UnityEngine.AI.NavMeshHit hit;
+        float searchRadius = 3f; // 검색 반경
+
+        if (UnityEngine.AI.NavMesh.SamplePosition(rawPosition, out hit, searchRadius, UnityEngine.AI.NavMesh.AllAreas))
+        {
+            Debug.Log($"[CustomerManager] 대기열 위치 {queueIndex + 1}: 원래 위치 {rawPosition} → 유효한 위치 {hit.position}");
+            return hit.position;
+        }
+        else
+        {
+            Debug.LogWarning($"[CustomerManager] 대기열 위치 {queueIndex + 1}에서 유효한 NavMesh 위치를 찾을 수 없음! 원래 위치 사용: {rawPosition}");
+            return rawPosition;
+        }
+    }
+
+    // 고객이 대기열을 떠날 때 호출 - 뒤의 모든 고객들이 한 칸씩 앞으로 이동
+    public void RemoveFromCounterQueue(Customer customer)
+    {
+        if (counterQueueCustomers.Contains(customer))
+        {
+            int customerIndex = counterQueueCustomers.IndexOf(customer);
+            Debug.Log($"[CustomerManager] 고객 {customer.name}이 대기열 위치 {customerIndex + 1}에서 떠남");
+
+            counterQueueCustomers.Remove(customer);
+
+            Debug.Log($"[CustomerManager] 남은 대기열 고객 수: {counterQueueCustomers.Count}");
+
+            // 뒤에 있던 모든 고객들에게 위치 업데이트 알림 (한 칸씩 앞으로)
+            if (counterQueueCustomers.Count > 0)
+            {
+                Debug.Log($"[CustomerManager] 남은 고객들을 한 칸씩 앞으로 이동시킴");
+                UpdateAllQueuePositions();
+                PrintQueueStatus();
+            }
+            else
+            {
+                Debug.Log($"[CustomerManager] 대기열이 비었습니다");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[CustomerManager] 대기열에 없는 고객 {customer?.name}을 제거하려고 시도");
+        }
+    }
+
+    // 모든 대기열 고객들의 위치 업데이트 - 한 칸씩 앞으로 이동
+    private void UpdateAllQueuePositions()
+    {
+        Debug.Log($"[CustomerManager] 대기열 위치 업데이트 시작. 총 {counterQueueCustomers.Count}명의 고객");
+
+        for (int i = 0; i < counterQueueCustomers.Count; i++)
+        {
+            Customer customer = counterQueueCustomers[i];
+            if (customer != null)
+            {
+                // NavMesh에 맞는 유효한 새 위치 계산
+                Vector3 validNewPosition = CalculateValidQueuePosition(i);
+
+                Debug.Log($"[CustomerManager] 고객 {i}: 유효한 새 위치 {validNewPosition}로 이동 지시");
+
+                // 고객에게 새로운 위치로 이동하라고 알림
+                customer.UpdateQueuePosition(validNewPosition);
+            }
+            else
+            {
+                Debug.LogWarning($"[CustomerManager] 대기열 인덱스 {i}에 null 고객 발견!");
+            }
+        }
+
+        Debug.Log($"[CustomerManager] 대기열 위치 업데이트 완료");
+    }
+
+    // 대기열 상태 디버그 출력
+    public void PrintQueueStatus()
+    {
+        Debug.Log($"=== 대기열 상태 ===");
+        Debug.Log($"총 대기열 고객 수: {counterQueueCustomers.Count}");
+
+        for (int i = 0; i < counterQueueCustomers.Count; i++)
+        {
+            Customer customer = counterQueueCustomers[i];
+            if (customer != null)
+            {
+                Vector3 validPosition = CalculateValidQueuePosition(i);
+                Vector3 currentPosition = customer.transform.position;
+                float distance = Vector3.Distance(currentPosition, validPosition);
+
+                Debug.Log($"위치 {i + 1}: {customer.name}");
+                Debug.Log($"  - 현재 위치: {currentPosition}");
+                Debug.Log($"  - 목표 위치: {validPosition}");
+                Debug.Log($"  - 거리: {distance:F2}m");
+            }
+            else
+            {
+                Debug.Log($"위치 {i + 1}: [빈 자리]");
+            }
+        }
+        Debug.Log($"==================");
+    }
+
     // Getter 메서드들
     public int GetActiveCustomerCount()
     {
@@ -361,6 +516,65 @@ public class CustomerManager : MonoBehaviour
         {
             Gizmos.color = Color.blue;
             Gizmos.DrawWireCube(counterPosition.position, Vector3.one);
+
+            // 카운터 대기열 위치 디버그 표시
+            DrawCounterQueueDebug();
         }
+    }
+
+    private void DrawCounterQueueDebug()
+    {
+        if (counterPosition == null) return;
+
+        // 대기열 위치들 (모든 고객이 카운터 뒤에 일렬로) - NavMesh 유효 위치 표시
+        for (int i = 0; i < 5; i++) // 최대 5명까지 미리보기
+        {
+            Vector3 queuePos = CalculateValidQueuePosition(i);
+
+            // 현재 예약된 고객이 있으면 다른 색상
+            bool hasCustomer = i < counterQueueCustomers.Count && counterQueueCustomers[i] != null;
+
+            if (i == 0)
+            {
+                // 첫 번째 고객 (가장 앞) - 노란색
+                Gizmos.color = hasCustomer ? Color.yellow : Color.gray;
+                Gizmos.DrawWireSphere(queuePos, 0.8f);
+                Gizmos.DrawCube(queuePos, Vector3.one * 0.3f);
+            }
+            else
+            {
+                // 나머지 고객들
+                Gizmos.color = hasCustomer ? Color.cyan : Color.gray;
+                Gizmos.DrawWireSphere(queuePos, 0.6f);
+            }
+
+            #if UNITY_EDITOR
+            string label = hasCustomer ? $"Queue[{i}] - 예약됨" : $"Queue[{i}] - 빈자리";
+            UnityEditor.Handles.Label(queuePos + Vector3.up * 1.5f, label);
+            #endif
+        }
+
+        // 예약된 대기열 연결선 그리기
+        if (counterQueueCustomers.Count > 1)
+        {
+            Gizmos.color = Color.magenta;
+
+            for (int i = 0; i < counterQueueCustomers.Count - 1 && i < 4; i++)
+            {
+                Vector3 currentPos = counterPosition.position + counterPosition.TransformDirection(queueDirection) * ((i + 1) * queueSpacing);
+                Vector3 nextPos = counterPosition.position + counterPosition.TransformDirection(queueDirection) * ((i + 2) * queueSpacing);
+                Gizmos.DrawLine(currentPos, nextPos);
+            }
+        }
+
+        // 카운터 방향 표시
+        Gizmos.color = Color.white;
+        Gizmos.DrawRay(counterPosition.position, counterPosition.TransformDirection(Vector3.forward) * 2f);
+        Gizmos.DrawRay(counterPosition.position, counterPosition.TransformDirection(queueDirection) * 6f);
+
+        #if UNITY_EDITOR
+        UnityEditor.Handles.Label(counterPosition.position + Vector3.up * 2f, $"대기열 고객 수: {counterQueueCustomers.Count}");
+        UnityEditor.Handles.Label(counterPosition.position + Vector3.up * 2.5f, "도착 순서 기반 대기열 시스템");
+        #endif
     }
 }

@@ -16,6 +16,7 @@ public class Bread : MonoBehaviour, IInteractable
 
     private OvenManager ovenManager;
     private bool isCollected = false;
+    private bool isCarriedByCustomer = false; // 고객이 들고 있는지 여부
     private Rigidbody breadRigidbody;
 
     private void Start()
@@ -135,9 +136,21 @@ public class Bread : MonoBehaviour, IInteractable
         // 나중에 파티클이나 사운드 효과 추가 가능
     }
 
+    // 고객이 빵을 들고 있는 상태 설정
+    public void SetCarriedByCustomer(bool carried)
+    {
+        isCarriedByCustomer = carried;
+    }
+
+    // 고객이 들고 있는지 확인
+    public bool IsCarriedByCustomer()
+    {
+        return isCarriedByCustomer;
+    }
+
     public void OnPlayerEnterTrigger(PlayerController player)
     {
-        if (!autoCollectOnTouch || isCollected) return;
+        if (!autoCollectOnTouch || isCollected || isCarriedByCustomer) return;
 
         CollectBread();
     }

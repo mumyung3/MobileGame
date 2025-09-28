@@ -128,10 +128,11 @@ public class BucketManager : MonoBehaviour
                     breadRigidbody.isKinematic = true;
                 }
 
-                // 수집 기능 비활성화
+                // 진열대 빵으로 설정 (플레이어가 회수하지 못하도록)
                 Bread breadScript = newBread.GetComponent<Bread>();
                 if (breadScript != null)
                 {
+                    breadScript.SetCarriedByCustomer(true); // 진열대 빵은 회수 불가
                     breadScript.enabled = false;
                 }
 

@@ -39,6 +39,13 @@ public class Customer : MonoBehaviour
     private Transform breadCarryPoint;
     private int targetBreadCount;
 
+    // 제자리 맴돌기 감지용
+    private Vector3 lastPosition = Vector3.zero;
+    private float stuckTimer = 0f;
+    private float stuckCheckInterval = 0.5f; // 0.5초마다 체크
+    private float maxStuckTime = 2f; // 2초간 같은 곳에 있으면 제자리 맴돌기로 판정
+    private float stuckDistanceThreshold = 0.3f; // 0.3m 이내 움직임만 있으면 제자리 맴돌기로 판정
+
     public enum CustomerState
     {
         MovingToBucket,
@@ -65,7 +72,7 @@ public class Customer : MonoBehaviour
         }
 
         navAgent.speed = moveSpeed;
-        navAgent.stoppingDistance = stoppingDistance;
+        navAgent.stoppingDistance = 0.5f; // 적당한 거리에서 멈추도록 설정
         navAgent.radius = obstacleAvoidanceRadius;
         navAgent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
 
@@ -168,8 +175,8 @@ public class Customer : MonoBehaviour
         navAgent.SetDestination(targetPosition);
         UpdateAnimation(true);
 
-        // 목적지에 도착할 때까지 대기
-        while (!HasReachedDestination(targetPosition))
+        // 목적지에 도착할 때까지 대기 (버킷은 후한 판정)
+        while (!HasReachedBucketDestination(targetPosition))
         {
             yield return new WaitForSeconds(0.1f);
         }
@@ -209,6 +216,12 @@ public class Customer : MonoBehaviour
         // 빵을 집은 후 1초 대기
         yield return new WaitForSeconds(1f);
 
+        // 대기열 참가 요청
+        if (customerManager != null)
+        {
+            customerManager.RequestJoinQueue(this);
+        }
+
         currentState = CustomerState.MovingToCounter;
     }
 
@@ -234,6 +247,13 @@ public class Customer : MonoBehaviour
         if (breadToCollect == null)
         {
             yield break;
+        }
+
+        // 새로 생성된 빵은 진열대 상태 해제 (고객이 가져갈 수 있도록)
+        Bread newBreadScript = breadToCollect.GetComponent<Bread>();
+        if (newBreadScript != null)
+        {
+            newBreadScript.SetCarriedByCustomer(false);
         }
 
         // 1단계: 버킷에서 역방향 애니메이션
@@ -287,10 +307,11 @@ public class Customer : MonoBehaviour
             breadRb.isKinematic = true;
         }
 
-        // 수집 기능 비활성화
+        // 수집 기능 비활성화 및 고객이 들고 있는 상태로 설정
         Bread breadScript = bread.GetComponent<Bread>();
         if (breadScript != null)
         {
+            breadScript.SetCarriedByCustomer(true); // 플레이어가 회수하지 못하도록
             breadScript.enabled = false;
         }
 
@@ -355,22 +376,57 @@ public class Customer : MonoBehaviour
 
     private IEnumerator MoveToCounter()
     {
-        if (counterPosition == null)
+        if (counterPosition == null || customerManager == null)
         {
             currentState = CustomerState.Leaving;
             yield break;
         }
 
-        Vector3 targetPosition = GetNearbyPosition(counterPosition.position, 1.5f);
+        // 대기열 위치 요청
+        Vector3 targetPosition = customerManager.RequestJoinQueue(this);
         navAgent.SetDestination(targetPosition);
         UpdateAnimation(true);
 
-        while (!HasReachedDestination(targetPosition))
+        while (!HasReachedCounterDestination(targetPosition))
         {
+            // 제자리 맴돌기 감지 및 처리
+            if (CheckAndHandleStuckMovement(targetPosition))
+            {
+                // 제자리 맴돌기 해결 중이면 잠시 대기
+                yield return new WaitForSeconds(2f);
+            }
+
             yield return new WaitForSeconds(0.1f);
         }
 
+        // 강제 위치 이동 완료 후 애니메이션 정지
         UpdateAnimation(false);
+
+        Debug.Log($"[Customer {name}] 대기열 근처 도착! 도착 순서 등록 중...");
+
+        // 실제 도착했음을 CustomerManager에게 알리고 정확한 위치 받기
+        if (customerManager != null)
+        {
+            Vector3 finalPosition = customerManager.OnCustomerArrivedAtQueue(this);
+
+            // 최종 위치가 현재 위치와 다르면 이동
+            if (Vector3.Distance(transform.position, finalPosition) > 0.5f)
+            {
+                Debug.Log($"[Customer {name}] 최종 위치로 미세 조정: {finalPosition}");
+                navAgent.enabled = false;
+                transform.position = finalPosition;
+                navAgent.enabled = true;
+            }
+        }
+
+        Debug.Log($"[Customer {name}] 대기열 최종 위치 도착! 현재 위치: {transform.position}");
+
+        // 잠시 대기 후 카운터 방향으로 회전
+        yield return new WaitForSeconds(0.2f);
+        yield return StartCoroutine(LookAtCounter());
+
+        Debug.Log($"[Customer {name}] 대기열 위치 정착 및 카운터 응시 완료");
+
         currentState = CustomerState.WaitingAtCounter;
     }
 
@@ -387,6 +443,13 @@ public class Customer : MonoBehaviour
         {
             if (carriedBreads[i] != null)
             {
+                // 빵의 carried 상태 해제 (혹시 제거되기 전에)
+                Bread breadScript = carriedBreads[i].GetComponent<Bread>();
+                if (breadScript != null)
+                {
+                    breadScript.SetCarriedByCustomer(false);
+                }
+
                 Destroy(carriedBreads[i]);
             }
         }
@@ -395,6 +458,13 @@ public class Customer : MonoBehaviour
         // 빵을 놓은 후 애니메이션 업데이트
         UpdateAnimation(false);
 
+
+        // 카운터 대기열에서 제거
+        if (customerManager != null)
+        {
+            customerManager.RemoveFromCounterQueue(this);
+        }
+
         // 돈 지급 (나중에 MoneyManager 연동)
         yield return new WaitForSeconds(2f);
         currentState = CustomerState.Leaving;
@@ -402,6 +472,23 @@ public class Customer : MonoBehaviour
 
     private IEnumerator LeaveStore()
     {
+        // 먼저 대기열을 피해서 안전한 위치로 이동
+        if (customerManager != null && counterPosition != null)
+        {
+            Vector3 safePosition = GetSafeExitPosition();
+            if (safePosition != Vector3.zero)
+            {
+                navAgent.SetDestination(safePosition);
+                UpdateAnimation(true);
+
+                // 안전한 위치에 도달할 때까지 대기
+                while (Vector3.Distance(transform.position, safePosition) > 1f)
+                {
+                    yield return new WaitForSeconds(0.1f);
+                }
+            }
+        }
+
         // 출구로 이동
         if (customerManager != null)
         {
@@ -429,21 +516,177 @@ public class Customer : MonoBehaviour
         Destroy(gameObject);
     }
 
-    private bool HasReachedDestination(Vector3 targetPosition)
+    // 버킷 도달 판정 (후하게)
+    private bool HasReachedBucketDestination(Vector3 targetPosition)
     {
         if (navAgent == null) return true;
 
-        // 거리 체크 (더 후하게)
+        // 거리 체크 (후하게)
         float distance = Vector3.Distance(transform.position, targetPosition);
-        bool isCloseEnough = distance <= stoppingDistance + 1.0f; // 여유를 더 많이 둠
+        bool isCloseEnough = distance <= stoppingDistance + 1.5f; // 여유를 많이 둠
 
         // 경로 계산이 끝났는지 체크
         bool isNotPending = !navAgent.pathPending;
 
-        // NavMeshAgent가 목적지에 도달했다고 판단하는지 체크 (더 후하게)
-        bool agentReached = !navAgent.hasPath || navAgent.remainingDistance < 1.0f;
+        // NavMeshAgent가 목적지에 도달했다고 판단하는지 체크 (후하게)
+        bool agentReached = !navAgent.hasPath || navAgent.remainingDistance < 1.5f;
 
         return isCloseEnough && isNotPending && agentReached;
+    }
+
+    // 카운터 도달 판정 - 가까워지면 강제 위치 이동
+    private bool HasReachedCounterDestination(Vector3 targetPosition)
+    {
+        if (navAgent == null) return true;
+
+        float distance = Vector3.Distance(transform.position, targetPosition);
+
+        // 일정 거리 이하로 가까워지면 강제로 정확한 위치로 이동
+        if (distance <= 1.5f)
+        {
+            Debug.Log($"[Customer {name}] 대기열 위치 근처 도달 - 강제 위치 이동: {distance:F2}m → 정확한 위치로");
+
+            // NavMeshAgent 비활성화하고 강제 위치 이동
+            navAgent.enabled = false;
+            transform.position = targetPosition;
+            navAgent.enabled = true;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    // 제자리 맴돌기 감지 및 처리
+    private bool CheckAndHandleStuckMovement(Vector3 targetPosition)
+    {
+        float currentDistance = Vector3.Distance(transform.position, lastPosition);
+
+        // 처음 위치 기록
+        if (lastPosition == Vector3.zero)
+        {
+            lastPosition = transform.position;
+            stuckTimer = 0f;
+            return false;
+        }
+
+        // 0.5초마다 체크
+        stuckTimer += Time.deltaTime;
+        if (stuckTimer >= stuckCheckInterval)
+        {
+            // 거의 같은 위치에서 맴돌고 있는지 확인
+            if (currentDistance <= stuckDistanceThreshold)
+            {
+                float timeSinceLastCheck = stuckTimer;
+
+                // 2초 동안 제자리에 있었다면 재이동 처리
+                if (timeSinceLastCheck >= maxStuckTime)
+                {
+                    Debug.LogWarning($"[Customer {name}] 제자리 맴돌기 감지! 거리: {currentDistance:F2}m, 시간: {timeSinceLastCheck:F1}초");
+                    HandleStuckMovement(targetPosition);
+                    return true;
+                }
+            }
+            else
+            {
+                // 움직이고 있으면 타이머 리셋
+                lastPosition = transform.position;
+                stuckTimer = 0f;
+            }
+        }
+
+        return false;
+    }
+
+    // 제자리 맴돌기 해결: 잠시 다른 곳으로 보낸 후 다시 목표 위치로
+    private void HandleStuckMovement(Vector3 targetPosition)
+    {
+        StartCoroutine(HandleStuckMovementCoroutine(targetPosition));
+    }
+
+    private System.Collections.IEnumerator HandleStuckMovementCoroutine(Vector3 targetPosition)
+    {
+        Debug.Log($"[Customer {name}] 제자리 맴돌기 해결 시작 - 임시 위치로 이동");
+
+        // 1단계: 근처의 임시 위치로 이동
+        Vector3 tempPosition = GetTemporaryPosition(targetPosition);
+        navAgent.SetDestination(tempPosition);
+
+        // 임시 위치로 이동하거나 1초 대기
+        float tempMoveStart = Time.time;
+        while (Vector3.Distance(transform.position, tempPosition) > 1f && (Time.time - tempMoveStart) < 1f)
+        {
+            yield return new WaitForSeconds(0.1f);
+        }
+
+        Debug.Log($"[Customer {name}] 임시 위치 도달 - 이제 목표 위치로 재이동");
+
+        // 2단계: 목표 위치로 다시 이동
+        navAgent.SetDestination(targetPosition);
+
+        // 상태 리셋
+        lastPosition = Vector3.zero;
+        stuckTimer = 0f;
+    }
+
+    // 임시 위치 계산 (목표 위치 근처의 안전한 위치)
+    private Vector3 GetTemporaryPosition(Vector3 targetPosition)
+    {
+        // 목표 위치에서 2-3m 떨어진 랜덤한 위치 찾기
+        for (int i = 0; i < 5; i++)
+        {
+            Vector3 randomDirection = Random.insideUnitSphere;
+            randomDirection.y = 0; // Y축 제거
+            randomDirection = randomDirection.normalized;
+
+            Vector3 tempPos = targetPosition + randomDirection * Random.Range(2f, 3f);
+
+            // NavMesh에서 유효한 위치인지 확인
+            UnityEngine.AI.NavMeshHit hit;
+            if (UnityEngine.AI.NavMesh.SamplePosition(tempPos, out hit, 2f, UnityEngine.AI.NavMesh.AllAreas))
+            {
+                return hit.position;
+            }
+        }
+
+        // 실패하면 목표 위치에서 뒤쪽으로 2m
+        return targetPosition + Vector3.back * 2f;
+    }
+
+    // 대기열을 피해서 안전한 출구 위치 찾기
+    private Vector3 GetSafeExitPosition()
+    {
+        if (counterPosition == null) return Vector3.zero;
+
+        // 카운터 옆쪽으로 이동 (대기열과 반대 방향)
+        Vector3 queueDirection = Vector3.back; // 대기열 방향
+        Vector3 sideDirection = Vector3.Cross(queueDirection, Vector3.up).normalized; // 옆쪽 방향
+
+        // 카운터에서 옆쪽으로 3f 떨어진 위치
+        Vector3 safePosition = counterPosition.position + counterPosition.TransformDirection(sideDirection) * 3f;
+
+        // NavMesh에서 유효한 위치 찾기
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(safePosition, out hit, 5f, NavMesh.AllAreas))
+        {
+            return hit.position;
+        }
+
+        // 실패 시 반대편 시도
+        safePosition = counterPosition.position + counterPosition.TransformDirection(-sideDirection) * 3f;
+        if (NavMesh.SamplePosition(safePosition, out hit, 5f, NavMesh.AllAreas))
+        {
+            return hit.position;
+        }
+
+        // 완전히 실패 시 카운터 앞쪽으로
+        safePosition = counterPosition.position + counterPosition.TransformDirection(Vector3.forward) * 4f;
+        if (NavMesh.SamplePosition(safePosition, out hit, 5f, NavMesh.AllAreas))
+        {
+            return hit.position;
+        }
+
+        return Vector3.zero; // 완전 실패
     }
 
     private Vector3 GetNearbyPosition(Vector3 targetPos, float radius)
@@ -483,6 +726,134 @@ public class Customer : MonoBehaviour
         if (customerAnimator != null)
         {
             customerAnimator.Play(stateName, 0, 0f);
+        }
+    }
+
+
+    // 카운터 방향으로 회전
+    private IEnumerator LookAtCounter()
+    {
+        if (counterPosition == null) yield break;
+
+        // NavMeshAgent 회전 비활성화 (수동으로 회전하기 위해)
+        if (navAgent != null)
+        {
+            navAgent.updateRotation = false;
+        }
+
+        Vector3 directionToCounter = (counterPosition.position - transform.position).normalized;
+        directionToCounter.y = 0f; // Y축 회전 제거
+
+        if (directionToCounter.magnitude > 0.1f)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(directionToCounter);
+            float rotationTime = 0f;
+            float rotationDuration = 1f;
+            Quaternion startRotation = transform.rotation;
+
+            while (rotationTime < rotationDuration)
+            {
+                rotationTime += Time.deltaTime;
+                float progress = rotationTime / rotationDuration;
+                transform.rotation = Quaternion.Slerp(startRotation, targetRotation, progress);
+                yield return null;
+            }
+
+            transform.rotation = targetRotation;
+        }
+
+        // NavMeshAgent 회전 다시 활성화
+        if (navAgent != null)
+        {
+            navAgent.updateRotation = true;
+        }
+    }
+
+    // 대기열 위치 업데이트 (다른 고객이 떠날 때 호출) - 한 칸씩 앞으로 이동
+    public void UpdateQueuePosition(Vector3 newQueuePosition)
+    {
+        Debug.Log($"[Customer {name}] 새로운 대기열 위치 업데이트: {newQueuePosition}, 현재 상태: {currentState}");
+
+        if (navAgent != null && (currentState == CustomerState.MovingToCounter || currentState == CustomerState.WaitingAtCounter))
+        {
+            if (currentState == CustomerState.MovingToCounter)
+            {
+                // 아직 이동 중이면 목적지 업데이트 (부드러운 경로 변경)
+                Debug.Log($"[Customer {name}] 이동 중 - 목적지를 {newQueuePosition}로 변경");
+                navAgent.SetDestination(newQueuePosition);
+            }
+            else if (currentState == CustomerState.WaitingAtCounter)
+            {
+                // 이미 대기 중이면 새 위치로 이동 시작 (한 칸 앞으로)
+                Debug.Log($"[Customer {name}] 대기 중 - {newQueuePosition}로 한 칸 앞으로 이동 시작");
+                StartCoroutine(MoveToNewQueuePosition(newQueuePosition));
+            }
+        }
+        else
+        {
+            Debug.Log($"[Customer {name}] 대기열 위치 업데이트 무시 - 상태: {currentState}");
+        }
+    }
+
+    // 대기 중에 새로운 큐 위치로 이동 - 한 칸씩 앞으로 부드럽게 이동
+    private IEnumerator MoveToNewQueuePosition(Vector3 newPosition)
+    {
+        Debug.Log($"[Customer {name}] 한 칸 앞으로 이동 시작: 현재 위치 {transform.position} → 목표 위치 {newPosition}");
+
+        // 새 위치로 이동 시작
+        navAgent.SetDestination(newPosition);
+        UpdateAnimation(true);
+
+        // 새 위치에 도달할 때까지 대기 (강제 위치 이동 포함)
+        float moveStartTime = Time.time;
+        while (!HasReachedCounterDestination(newPosition))
+        {
+            // 제자리 맴돌기 감지 및 처리
+            if (CheckAndHandleStuckMovement(newPosition))
+            {
+                // 제자리 맴돌기 해결 중이면 잠시 대기
+                yield return new WaitForSeconds(2f);
+            }
+
+            // 너무 오래 걸리면 강제로 위치 설정
+            if (Time.time - moveStartTime > 5f)
+            {
+                Debug.LogWarning($"[Customer {name}] 이동 시간 초과 - 즉시 강제 위치 이동");
+                navAgent.enabled = false;
+                transform.position = newPosition;
+                navAgent.enabled = true;
+                break;
+            }
+            yield return new WaitForSeconds(0.1f);
+        }
+
+        UpdateAnimation(false);
+        Debug.Log($"[Customer {name}] 새 대기열 위치 정착 완료: {transform.position}");
+
+        // 잠시 대기 후 카운터 방향으로 회전
+        yield return new WaitForSeconds(0.2f);
+        yield return StartCoroutine(LookAtCounter());
+
+        Debug.Log($"[Customer {name}] 한 칸 앞으로 이동 완료");
+    }
+
+    // 카운터 목적지 업데이트 (레거시 - 호환성을 위해 유지)
+    public void UpdateCounterDestination(Vector3 newDestination)
+    {
+        UpdateQueuePosition(newDestination);
+    }
+
+    // 결제 관련 메서드들
+    public bool IsProcessingPayment()
+    {
+        return currentState == CustomerState.Paying;
+    }
+
+    public void StartPayment()
+    {
+        if (currentState == CustomerState.WaitingAtCounter)
+        {
+            currentState = CustomerState.Paying;
         }
     }
 
