@@ -26,9 +26,11 @@ public class CustomerManager : MonoBehaviour
     [Header("Counter Queue Settings")]
     [SerializeField] private float queueSpacing = 2f;
     [SerializeField] private Vector3 queueDirection = Vector3.back; // z축 음의 방향으로 줄 세우기
+    [SerializeField] private int maxCounterQueueSize = 2; // 카운터 대기열 최대 인원
 
     private List<Customer> activeCustomers = new List<Customer>();
     private List<Customer> counterQueueCustomers = new List<Customer>(); // 도착 순서대로 정렬된 대기열
+    private List<Customer> customersWithBread = new List<Customer>(); // 빵을 집은 고객들 순서대로 저장
     private Coroutine spawnCoroutine;
     private bool isSpawning = false;
 
@@ -313,13 +315,39 @@ public class CustomerManager : MonoBehaviour
 
         Debug.Log($"[CustomerManager] 고객 {customer.name}이 대기열 참가 요청");
 
-        // 예약만 하고 실제 위치는 도착했을 때 결정
-        // 현재는 대략적인 위치만 반환 (실제 순서는 도착 시 결정)
-        int tempIndex = counterQueueCustomers.Count; // 현재 대기열 뒤쪽 예상 위치
-        Vector3 tempPosition = CalculateValidQueuePosition(tempIndex);
+        // 빵을 집은 고객 리스트에 추가 (순서 기록)
+        if (!customersWithBread.Contains(customer))
+        {
+            customersWithBread.Add(customer);
+            Debug.Log($"[CustomerManager] 고객 {customer.name}을 빵 수집 완료 리스트에 추가 (순서: {customersWithBread.Count})");
+        }
 
-        Debug.Log($"[CustomerManager] 고객 {customer.name}에게 임시 목표 위치 제공: {tempPosition}");
-        return tempPosition;
+        Debug.Log($"[CustomerManager] 현재 빵 수집 완료 리스트: {string.Join(", ", customersWithBread.ConvertAll(c => c?.name ?? "null"))}");
+
+        // 빵을 집은 고객들 중에서 이 고객이 몇 번째인지 확인
+        int customerOrderInBreadList = customersWithBread.IndexOf(customer);
+
+        // 처음 2명만 카운터로 갈 수 있음
+        if (customerOrderInBreadList < maxCounterQueueSize)
+        {
+            Debug.Log($"[CustomerManager] 고객 {customer.name}은 빵 수집 순서 {customerOrderInBreadList + 1}번째 - 카운터로 이동 허용");
+
+            // 대기열에 자리가 있으면 정상적으로 처리
+            int tempIndex = counterQueueCustomers.Count; // 현재 대기열 뒤쪽 예상 위치
+            Vector3 tempPosition = CalculateValidQueuePosition(tempIndex);
+
+            Debug.Log($"[CustomerManager] 고객 {customer.name}에게 임시 목표 위치 제공: {tempPosition}");
+            return tempPosition;
+        }
+        else
+        {
+            Debug.Log($"[CustomerManager] 고객 {customer.name}은 빵 수집 순서 {customerOrderInBreadList + 1}번째 - 진열대에서 대기");
+
+            // 진열대 근처에서 대기하도록 특별한 위치 반환
+            Vector3 waitingPosition = GetBucketWaitingPosition(customer);
+            customer.SetWaitingAtBucket(true); // 고객에게 진열대 대기 상태임을 알림
+            return waitingPosition;
+        }
     }
 
     // 고객이 실제로 대기열 위치에 도착했을 때 호출 - 도착 순서대로 배치
@@ -327,11 +355,25 @@ public class CustomerManager : MonoBehaviour
     {
         Debug.Log($"[CustomerManager] 고객 {customer.name}이 대기열에 실제 도착 - 도착 순서 기록");
 
-        // 도착한 순서대로 대기열에 추가
+        // 빵 수집 순서를 다시 확인 (혹시라도 리스트가 변경되었을 수 있음)
+        int customerOrderInBreadList = customersWithBread.IndexOf(customer);
+
+        // 빵 수집 순서가 2번째를 넘으면 진열대로 돌려보냄
+        if (customerOrderInBreadList >= maxCounterQueueSize)
+        {
+            Debug.Log($"[CustomerManager] 고객 {customer.name}은 빵 수집 순서 {customerOrderInBreadList + 1}번째로 대기열 진입 불가 - 진열대로 복귀");
+
+            Vector3 waitingPosition = GetBucketWaitingPosition(customer);
+            customer.SetWaitingAtBucket(true);
+            return waitingPosition;
+        }
+
+        // 도착한 순서대로 대기열에 추가 (빵 수집 순서 상위 2명만)
         if (!counterQueueCustomers.Contains(customer))
         {
             counterQueueCustomers.Add(customer);
-            Debug.Log($"[CustomerManager] 고객 {customer.name}을 대기열 {counterQueueCustomers.Count}번째 위치에 추가");
+            customer.SetWaitingAtBucket(false); // 카운터 대기열로 이동했으므로 진열대 대기 해제
+            Debug.Log($"[CustomerManager] 고객 {customer.name}을 대기열 {counterQueueCustomers.Count}번째 위치에 추가 (빵 수집 순서: {customerOrderInBreadList + 1})");
         }
 
         // 도착 순서에 따른 실제 위치 계산
@@ -381,6 +423,16 @@ public class CustomerManager : MonoBehaviour
 
             counterQueueCustomers.Remove(customer);
 
+            // 빵 수집 완료 리스트에서도 제거
+            if (customersWithBread.Contains(customer))
+            {
+                customersWithBread.Remove(customer);
+                Debug.Log($"[CustomerManager] 고객 {customer.name}을 빵 수집 완료 리스트에서 제거");
+
+                // 빵 수집 완료 리스트 순서 변경으로 인해 대기 중인 고객들의 순서 재평가
+                ReorderCustomersWithBread();
+            }
+
             Debug.Log($"[CustomerManager] 남은 대기열 고객 수: {counterQueueCustomers.Count}");
 
             // 뒤에 있던 모든 고객들에게 위치 업데이트 알림 (한 칸씩 앞으로)
@@ -394,6 +446,9 @@ public class CustomerManager : MonoBehaviour
             {
                 Debug.Log($"[CustomerManager] 대기열이 비었습니다");
             }
+
+            // 대기열에 빈 자리가 생겼으니 진열대에서 대기 중인 고객을 대기열로 이동
+            TryMoveWaitingCustomerToQueue();
         }
         else
         {
@@ -454,6 +509,125 @@ public class CustomerManager : MonoBehaviour
             }
         }
         Debug.Log($"==================");
+    }
+
+    // Counter에서 사용할 메서드 - 대기열 첫 번째 고객 반환
+    public Customer GetFirstCustomerInQueue()
+    {
+        if (counterQueueCustomers.Count > 0)
+        {
+            return counterQueueCustomers[0];
+        }
+        return null;
+    }
+
+    // 대기열 고객 수 반환
+    public int GetQueueLength()
+    {
+        return counterQueueCustomers.Count;
+    }
+
+    // 진열대에서 대기 중인 고객을 대기열로 이동 시도
+    private void TryMoveWaitingCustomerToQueue()
+    {
+        // 대기열이 가득 찬 경우 실행하지 않음
+        if (counterQueueCustomers.Count >= maxCounterQueueSize)
+        {
+            return;
+        }
+
+        // 빵 수집 완료 리스트에서 다음 순서의 고객 찾기 (카운터에 아직 가지 않은 고객 중 가장 빨리 빵을 집은 고객)
+        Customer nextCustomer = FindNextCustomerForQueue();
+
+        if (nextCustomer != null)
+        {
+            Debug.Log($"[CustomerManager] 빵 수집 순서에 따라 다음 고객 {nextCustomer.name}을 대기열로 이동 지시");
+
+            // 고객에게 대기열로 이동하라고 신호
+            nextCustomer.MoveToCounterFromBucket();
+        }
+    }
+
+    // 빵 수집 순서에 따라 다음에 대기열에 갈 고객 찾기
+    private Customer FindNextCustomerForQueue()
+    {
+        // 빵 수집 완료 리스트에서 순서대로 확인
+        for (int i = 0; i < customersWithBread.Count && i < maxCounterQueueSize; i++)
+        {
+            Customer customer = customersWithBread[i];
+
+            // 이 고객이 아직 대기열에 없고 진열대에서 대기 중인지 확인
+            if (customer != null && !counterQueueCustomers.Contains(customer) && customer.IsWaitingAtBucket())
+            {
+                return customer;
+            }
+        }
+
+        return null;
+    }
+
+    // 빵 수집 완료 리스트 재정렬 (고객이 떠난 후 순서 재평가)
+    private void ReorderCustomersWithBread()
+    {
+        Debug.Log($"[CustomerManager] 빵 수집 완료 리스트 재정렬 시작");
+
+        // 현재 빵 수집 완료 리스트 상태 출력
+        for (int i = 0; i < customersWithBread.Count; i++)
+        {
+            Customer customer = customersWithBread[i];
+            if (customer != null)
+            {
+                Debug.Log($"[CustomerManager] 빵 수집 순서 {i + 1}: {customer.name}");
+
+                // 순서가 바뀌어서 이제 카운터에 갈 수 있게 된 고객이 있는지 확인
+                if (i < maxCounterQueueSize && customer.IsWaitingAtBucket() && !counterQueueCustomers.Contains(customer))
+                {
+                    Debug.Log($"[CustomerManager] 고객 {customer.name}이 이제 카운터에 갈 수 있는 순서가 됨 - 이동 지시");
+                    customer.MoveToCounterFromBucket();
+                }
+            }
+        }
+    }
+
+    // 진열대에서 대기 중인 고객 찾기 (레거시 메서드 - 호환성 유지)
+    private Customer FindWaitingCustomerAtBucket()
+    {
+        // 새로운 순서 기반 시스템을 사용
+        return FindNextCustomerForQueue();
+    }
+
+    // 진열대 근처 대기 위치 계산
+    private Vector3 GetBucketWaitingPosition(Customer customer)
+    {
+        if (customer.GetTargetBucket() != null)
+        {
+            // 고객이 빵을 집은 진열대 근처에서 대기
+            Vector3 bucketPos = customer.GetTargetBucket().transform.position;
+
+            // 진열대에서 약간 떨어진 대기 위치 (다른 고객들과 겹치지 않도록)
+            Vector3 waitingPos = bucketPos + UnityEngine.Random.insideUnitSphere * 3f;
+            waitingPos.y = bucketPos.y; // Y 좌표는 동일하게
+
+            // NavMesh에서 유효한 위치 찾기
+            UnityEngine.AI.NavMeshHit hit;
+            if (UnityEngine.AI.NavMesh.SamplePosition(waitingPos, out hit, 5f, UnityEngine.AI.NavMesh.AllAreas))
+            {
+                return hit.position;
+            }
+
+            // 실패 시 진열대 위치 반환
+            return bucketPos;
+        }
+
+        // 타겟 진열대가 없으면 아무 진열대나 선택
+        if (bucketManagers != null && bucketManagers.Length > 0)
+        {
+            BucketManager randomBucket = bucketManagers[UnityEngine.Random.Range(0, bucketManagers.Length)];
+            Vector3 randomBucketPos = randomBucket.transform.position;
+            return randomBucketPos + Vector3.right * 2f; // 오른쪽으로 2m 떨어진 위치
+        }
+
+        return Vector3.zero;
     }
 
     // Getter 메서드들

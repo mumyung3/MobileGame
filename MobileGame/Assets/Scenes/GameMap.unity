@@ -205,6 +205,27 @@ NavMeshObstacle:
   m_CarveOnlyStationary: 1
   m_Center: {x: 0, y: 1, z: -0.5}
   m_TimeToStationary: 0.5
+--- !u!114 &93828465
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 93828461}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5110a2f4cc2d4b679f9bcc972cfab58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerTag: Player
+  useColliderDetection: 1
+  detectionBoxSize: {x: 3, y: 2, z: 3}
+  detectionBoxOffset: {x: 0, y: 0, z: 0}
+  paymentDuration: 2
+  autoProcessPayment: 1
+  customerManager: {fileID: 1465167452}
+  autoFindCustomerManager: 1
+  showDebugLogs: 1
 --- !u!1001 &437517493
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -351,7 +372,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 602092886}
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 1.01, y: 0.587, z: -0.13}
+  m_LocalPosition: {x: 1.01, y: 0.789, z: -0.13}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -590,6 +611,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ccf0287e4ad9bdd44a8e1f8fbcc92cf1, type: 3}
+--- !u!4 &792448423 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2769088074213253934, guid: 7589a81d80a1d4b249842f48662bd3be, type: 3}
+  m_PrefabInstance: {fileID: 1498247860}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &894192558
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -921,8 +947,9 @@ MonoBehaviour:
   autoStartSpawning: 1
   initialSpawnDelay: 0.3
   maxCustomersWithoutBread: 2
-  queueSpacing: 1
+  queueSpacing: 2
   queueDirection: {x: 0, y: 0, z: -1}
+  maxCounterQueueSize: 2
 --- !u!1001 &1498247860
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -930,6 +957,26 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2769088074213253934, guid: 7589a81d80a1d4b249842f48662bd3be, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.33
+      objectReference: {fileID: 0}
+    - target: {fileID: 2769088074213253934, guid: 7589a81d80a1d4b249842f48662bd3be, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.17
+      objectReference: {fileID: 0}
+    - target: {fileID: 3989005008371065898, guid: 7589a81d80a1d4b249842f48662bd3be, type: 3}
+      propertyPath: layerHeight
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3989005008371065898, guid: 7589a81d80a1d4b249842f48662bd3be, type: 3}
+      propertyPath: moneySpacing
+      value: 0.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 3989005008371065898, guid: 7589a81d80a1d4b249842f48662bd3be, type: 3}
+      propertyPath: moneySpawnPoint
+      value: 
+      objectReference: {fileID: 792448423}
     - target: {fileID: 5448640444015717077, guid: 7589a81d80a1d4b249842f48662bd3be, type: 3}
       propertyPath: m_Name
       value: MoneyFloor
@@ -1301,6 +1348,10 @@ PrefabInstance:
     - target: {fileID: 4560946337011777927, guid: 15aa2b559699e49faa920844f395d02b, type: 3}
       propertyPath: m_Name
       value: TempPlayer
+      objectReference: {fileID: 0}
+    - target: {fileID: 4560946337011777927, guid: 15aa2b559699e49faa920844f395d02b, type: 3}
+      propertyPath: m_TagString
+      value: Player
       objectReference: {fileID: 0}
     - target: {fileID: 7214433616264948193, guid: 15aa2b559699e49faa920844f395d02b, type: 3}
       propertyPath: stackPoint

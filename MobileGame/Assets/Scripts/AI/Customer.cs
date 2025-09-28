@@ -46,11 +46,16 @@ public class Customer : MonoBehaviour
     private float maxStuckTime = 2f; // 2초간 같은 곳에 있으면 제자리 맴돌기로 판정
     private float stuckDistanceThreshold = 0.3f; // 0.3m 이내 움직임만 있으면 제자리 맴돌기로 판정
 
+    // 진열대 대기 관련
+    private bool isWaitingAtBucket = false;
+    private Coroutine wanderingCoroutine;
+
     public enum CustomerState
     {
         MovingToBucket,
         WaitingAtBucket,
         PickingUpBread,
+        WaitingAtBucketForQueue, // 진열대에서 카운터 대기열 자리 기다리는 상태
         MovingToCounter,
         WaitingAtCounter,
         Paying,
@@ -140,6 +145,10 @@ public class Customer : MonoBehaviour
                     yield return PickUpBread();
                     break;
 
+                case CustomerState.WaitingAtBucketForQueue:
+                    yield return WaitAtBucketForQueue();
+                    break;
+
                 case CustomerState.MovingToCounter:
                     yield return MoveToCounter();
                     break;
@@ -219,9 +228,32 @@ public class Customer : MonoBehaviour
         // 대기열 참가 요청
         if (customerManager != null)
         {
-            customerManager.RequestJoinQueue(this);
+            Vector3 queuePosition = customerManager.RequestJoinQueue(this);
+
+            // CustomerManager에서 설정된 진열대 대기 상태 확인
+            if (isWaitingAtBucket)
+            {
+                // 진열대에서 대기하라는 신호를 받음
+                Debug.Log($"[Customer {name}] 빵 수집 순서가 늦어서 진열대에서 대기: {queuePosition}");
+                currentState = CustomerState.WaitingAtBucketForQueue;
+
+                // 진열대 대기 위치로 이동
+                if (queuePosition != Vector3.zero)
+                {
+                    navAgent.SetDestination(queuePosition);
+                    UpdateAnimation(true); // 이동 애니메이션
+                }
+                else
+                {
+                    // 대기 위치를 받지 못한 경우 현재 위치에서 대기
+                    UpdateAnimation(false); // 정지 애니메이션
+                }
+                yield break;
+            }
         }
 
+        // 카운터로 이동 허용된 경우
+        Debug.Log($"[Customer {name}] 카운터 대기열로 이동 허용");
         currentState = CustomerState.MovingToCounter;
     }
 
@@ -432,12 +464,31 @@ public class Customer : MonoBehaviour
 
     private IEnumerator WaitAtCounter()
     {
-        yield return new WaitForSeconds(waitTimeAtCounter);
-        currentState = CustomerState.Paying;
+        // Counter에서 결제 처리 신호를 기다림 (StartPayment() 호출 시까지)
+        while (currentState == CustomerState.WaitingAtCounter)
+        {
+            yield return new WaitForSeconds(0.1f);
+        }
+        // currentState가 Paying으로 변경되면 자동으로 PayForBread()로 넘어감
     }
 
     private IEnumerator PayForBread()
     {
+        int breadCount = carriedBreads.Count;
+        Debug.Log($"[Customer {name}] 결제 시작 - 빵 개수: {breadCount}");
+
+        // MoneyManager 찾기 및 돈 스폰
+        MoneyManager moneyManager = FindObjectOfType<MoneyManager>();
+        if (moneyManager != null && breadCount > 0)
+        {
+            Debug.Log($"[Customer {name}] {breadCount}개 빵에 대한 돈 지급");
+            moneyManager.SpawnMoneyForBread(breadCount);
+        }
+        else
+        {
+            Debug.LogWarning($"[Customer {name}] MoneyManager를 찾을 수 없거나 빵이 없음");
+        }
+
         // 결제 처리 - 모든 빵 제거
         for (int i = carriedBreads.Count - 1; i >= 0; i--)
         {
@@ -458,14 +509,13 @@ public class Customer : MonoBehaviour
         // 빵을 놓은 후 애니메이션 업데이트
         UpdateAnimation(false);
 
-
         // 카운터 대기열에서 제거
         if (customerManager != null)
         {
             customerManager.RemoveFromCounterQueue(this);
         }
 
-        // 돈 지급 (나중에 MoneyManager 연동)
+        // 결제 완료 대기
         yield return new WaitForSeconds(2f);
         currentState = CustomerState.Leaving;
     }
@@ -855,6 +905,162 @@ public class Customer : MonoBehaviour
         {
             currentState = CustomerState.Paying;
         }
+    }
+
+    // 진열대에서 카운터 대기열 자리를 기다리는 상태
+    private IEnumerator WaitAtBucketForQueue()
+    {
+        Debug.Log($"[Customer {name}] 진열대에서 자유롭게 돌아다니며 대기 시작");
+
+        // 자유롭게 돌아다니기 시작
+        wanderingCoroutine = StartCoroutine(WanderAroundBucket());
+
+        // 대기열에 자리가 날 때까지 무한 대기
+        while (isWaitingAtBucket)
+        {
+            yield return new WaitForSeconds(0.5f);
+        }
+
+        // 돌아다니기 중단
+        if (wanderingCoroutine != null)
+        {
+            StopCoroutine(wanderingCoroutine);
+            wanderingCoroutine = null;
+        }
+
+        // 대기열에 자리가 났으면 카운터로 이동
+        Debug.Log($"[Customer {name}] 대기열에 자리가 생겨서 카운터로 이동 시작");
+        currentState = CustomerState.MovingToCounter;
+    }
+
+    // 진열대 주변을 자유롭게 돌아다니는 코루틴
+    private IEnumerator WanderAroundBucket()
+    {
+        while (isWaitingAtBucket)
+        {
+            // 랜덤한 목적지 선택
+            Vector3 wanderTarget = GetRandomWanderPosition();
+
+            if (wanderTarget != Vector3.zero)
+            {
+                navAgent.SetDestination(wanderTarget);
+                UpdateAnimation(true);
+
+                // 목적지에 도착하거나 일정 시간이 지날 때까지 대기
+                float moveStartTime = Time.time;
+                while (isWaitingAtBucket && navAgent.hasPath && navAgent.remainingDistance > 1f)
+                {
+                    // 너무 오래 걸리면 새로운 목적지 선택
+                    if (Time.time - moveStartTime > 8f)
+                    {
+                        break;
+                    }
+                    yield return new WaitForSeconds(0.2f);
+                }
+
+                // 목적지에 도착하면 잠시 멈춤
+                UpdateAnimation(false);
+                yield return new WaitForSeconds(Random.Range(2f, 5f));
+            }
+            else
+            {
+                // 유효한 위치를 찾지 못한 경우 잠시 대기
+                UpdateAnimation(false);
+                yield return new WaitForSeconds(Random.Range(3f, 6f));
+            }
+
+            yield return null;
+        }
+    }
+
+    // 진열대 주변의 랜덤한 돌아다닐 위치 선택
+    private Vector3 GetRandomWanderPosition()
+    {
+        Vector3 basePosition = Vector3.zero;
+
+        // 타겟 버킷이 있으면 그 주변을 기준으로
+        if (targetBucket != null)
+        {
+            basePosition = targetBucket.transform.position;
+        }
+        else
+        {
+            // 없으면 현재 위치 기준
+            basePosition = transform.position;
+        }
+
+        // 기준 위치에서 5~8m 반경 내의 랜덤한 위치 선택
+        for (int i = 0; i < 10; i++) // 최대 10번 시도
+        {
+            Vector3 randomDirection = Random.insideUnitSphere;
+            randomDirection.y = 0; // Y축 제거
+            randomDirection = randomDirection.normalized;
+
+            float randomDistance = Random.Range(3f, 8f);
+            Vector3 targetPosition = basePosition + randomDirection * randomDistance;
+
+            // NavMesh에서 유효한 위치인지 확인
+            UnityEngine.AI.NavMeshHit hit;
+            if (UnityEngine.AI.NavMesh.SamplePosition(targetPosition, out hit, 3f, UnityEngine.AI.NavMesh.AllAreas))
+            {
+                // 카운터와 너무 가깝지 않은지 확인 (카운터 대기열 방해 방지)
+                if (counterPosition != null)
+                {
+                    float distanceToCounter = Vector3.Distance(hit.position, counterPosition.position);
+                    if (distanceToCounter < 6f) // 카운터에서 6m 이내는 피함
+                    {
+                        continue;
+                    }
+                }
+
+                return hit.position;
+            }
+        }
+
+        return Vector3.zero; // 유효한 위치를 찾지 못함
+    }
+
+    // CustomerManager에서 호출: 진열대에서 카운터로 이동 지시
+    public void MoveToCounterFromBucket()
+    {
+        if (currentState == CustomerState.WaitingAtBucketForQueue)
+        {
+            isWaitingAtBucket = false; // 진열대 대기 해제
+
+            // 돌아다니기 코루틴 중단
+            if (wanderingCoroutine != null)
+            {
+                StopCoroutine(wanderingCoroutine);
+                wanderingCoroutine = null;
+            }
+
+            Debug.Log($"[Customer {name}] 카운터로 이동 지시 받음 - 돌아다니기 중단");
+        }
+    }
+
+    // 진열대 대기 상태 설정
+    public void SetWaitingAtBucket(bool waiting)
+    {
+        isWaitingAtBucket = waiting;
+        Debug.Log($"[Customer {name}] 진열대 대기 상태: {waiting}");
+    }
+
+    // 진열대 대기 상태 반환
+    public bool IsWaitingAtBucket()
+    {
+        return isWaitingAtBucket;
+    }
+
+    // 빵을 수집했는지 확인
+    public bool HasCollectedBread()
+    {
+        return carriedBreads.Count > 0;
+    }
+
+    // 타겟 버킷 반환
+    public BucketManager GetTargetBucket()
+    {
+        return targetBucket;
     }
 
     // Getter 메서드들
