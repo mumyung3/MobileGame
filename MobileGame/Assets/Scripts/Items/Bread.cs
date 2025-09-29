@@ -17,6 +17,7 @@ public class Bread : MonoBehaviour, IInteractable
     private OvenManager ovenManager;
     private bool isCollected = false;
     private bool isCarriedByCustomer = false; // 고객이 들고 있는지 여부
+    private bool isOnDisplay = false; // 진열대에 놓인 빵인지 여부 (플레이어가 다시 수집 불가)
     private Rigidbody breadRigidbody;
 
     private void Start()
@@ -148,9 +149,21 @@ public class Bread : MonoBehaviour, IInteractable
         return isCarriedByCustomer;
     }
 
+    // 진열대에 놓인 빵 상태 설정
+    public void SetOnDisplay(bool onDisplay)
+    {
+        isOnDisplay = onDisplay;
+    }
+
+    // 진열대에 놓인 빵인지 확인
+    public bool IsOnDisplay()
+    {
+        return isOnDisplay;
+    }
+
     public void OnPlayerEnterTrigger(PlayerController player)
     {
-        if (!autoCollectOnTouch || isCollected || isCarriedByCustomer) return;
+        if (!autoCollectOnTouch || isCollected || isCarriedByCustomer || isOnDisplay) return;
 
         CollectBread();
     }

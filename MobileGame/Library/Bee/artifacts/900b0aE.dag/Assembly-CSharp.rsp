@@ -375,6 +375,7 @@
 "Assets/Scripts/Player/PlayerBreadStack.cs"
 "Assets/Scripts/Player/PlayerController.cs"
 "Assets/Scripts/PlayerCharacter.cs"
+"Assets/Scripts/UI/Arrow.cs"
 "Assets/Scripts/Upgrade/Upgrade.cs"
 -langversion:9.0
 
