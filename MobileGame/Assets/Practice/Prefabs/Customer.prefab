@@ -426,6 +426,7 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   afterPaymentItemPrefab: {fileID: 1475244874789685451, guid: 5f3a83b985d174ecf846edb7c0a3b4ae, type: 3}
+  paymentVFXPrefab: {fileID: 6011335372448152089, guid: 4ecbd0074ae4141d9b191ca694f3c6e9, type: 3}
 --- !u!114 &7872264719601658346
 MonoBehaviour:
   m_ObjectHideFlags: 0

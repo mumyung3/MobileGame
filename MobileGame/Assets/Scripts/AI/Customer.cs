@@ -30,6 +30,9 @@ public class Customer : MonoBehaviour
     [Header("After Payment Item")]
     [SerializeField] private GameObject afterPaymentItemPrefab; // 결제 후 손에 들고 나갈 아이템
 
+    [Header("Payment VFX")]
+    [SerializeField] private GameObject paymentVFXPrefab; // 결제 후 VFX 파티클 프리팹
+
 
     private NavMeshAgent navAgent;
     private Animator customerAnimator;
@@ -636,10 +639,13 @@ public class Customer : MonoBehaviour
         HideWorldUI();
 
         // 모든 고객이 결제 완료 후 마커 UI 표시
-        ShowMarkerUI();
+        //ShowMarkerUI();
 
         // 결제 후 아이템 생성
         CreateAfterPaymentItem();
+
+        // 결제 후 VFX 재생
+        PlayPaymentVFX();
 
         // 결제 완료 대기
         yield return new WaitForSeconds(2f);
@@ -654,6 +660,37 @@ public class Customer : MonoBehaviour
             afterPaymentItem.transform.localPosition = Vector3.zero;
             afterPaymentItem.transform.localRotation = Quaternion.Euler(0, 90, 0);
             Debug.Log($"[Customer] 결제 후 아이템 생성됨: {afterPaymentItem.name}");
+        }
+    }
+
+    private void PlayPaymentVFX()
+    {
+        if (paymentVFXPrefab != null && worldUI != null)
+        {
+            // 현재 UI 위치 가져오기
+            Vector3 uiPosition = worldUI.GetCurrentUIPosition();
+
+            // VFX 프리팹을 고객의 자식으로 인스턴스화
+            GameObject vfxInstance = Instantiate(paymentVFXPrefab, transform);
+            vfxInstance.transform.position = uiPosition;
+
+            Debug.Log($"[Customer] 결제 VFX 생성됨 - 위치: {uiPosition}");
+
+            // 파티클 시스템이 끝나면 자동으로 제거되도록 설정 (선택사항)
+            ParticleSystem ps = vfxInstance.GetComponent<ParticleSystem>();
+            if (ps != null)
+            {
+                Destroy(vfxInstance, ps.main.duration + ps.main.startLifetime.constantMax);
+            }
+            else
+            {
+                // 파티클 시스템이 없다면 3초 후 제거
+                Destroy(vfxInstance, 3f);
+            }
+        }
+        else
+        {
+            Debug.Log($"[Customer] VFX 프리팹 또는 UI가 설정되지 않음");
         }
     }
 
