@@ -378,6 +378,7 @@
 "Assets/Scripts/UI/Arrow.cs"
 "Assets/Scripts/UI/CustomerWorldUI.cs"
 "Assets/Scripts/UI/SimpleCustomerUI.cs"
+"Assets/Scripts/UI/TrashCleanup.cs"
 "Assets/Scripts/Upgrade/Upgrade.cs"
 -langversion:9.0
 

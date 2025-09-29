@@ -33,6 +33,14 @@ public class Customer : MonoBehaviour
     [Header("Payment VFX")]
     [SerializeField] private GameObject paymentVFXPrefab; // 결제 후 VFX 파티클 프리팹
 
+    [Header("3rd Customer Table Settings")]
+    [SerializeField] private string tableTag = "Table"; // 테이블 태그
+    [SerializeField] private GameObject trashPrefab; // 쓰레기 프리팹
+    [SerializeField] private GameObject trashCleanVFXPrefab; // 쓰레기 청소 VFX 프리팹
+    [SerializeField] private float playerDetectionRadius = 2f; // 플레이어 감지 거리
+
+    private Transform tableTransform; // 런타임에 찾을 테이블 Transform
+
 
     private NavMeshAgent navAgent;
     private Animator customerAnimator;
@@ -58,6 +66,9 @@ public class Customer : MonoBehaviour
     // 결제 후 아이템
     private GameObject afterPaymentItem;
     private bool hasAfterPaymentItem = false; // 결제 후 아이템을 가지고 있는지
+
+    // 3번째 고객 쓰레기 관련
+    public static GameObject CurrentTrashInstance; // 현재 생성된 쓰레기 인스턴스
 
     // 제자리 맴돌기 감지용
     private Vector3 lastPosition = Vector3.zero;
@@ -1467,9 +1478,50 @@ public class Customer : MonoBehaviour
             }
         }
 
+        // 3번째 고객이 떠날 때 쓰레기 생성
+        if (isThirdCustomer && trashPrefab != null)
+        {
+            // 테이블 찾기 (아직 안 찾았다면)
+            if (tableTransform == null)
+            {
+                GameObject tableObj = GameObject.FindWithTag(tableTag);
+                if (tableObj != null)
+                {
+                    tableTransform = tableObj.transform;
+                }
+            }
+
+            if (tableTransform != null)
+            {
+                CreateTrashOnTable();
+            }
+        }
+
         currentState = CustomerState.Leaving;
 
         yield break;
+    }
+
+    // 3번째 고객이 테이블에 쓰레기 생성
+    private void CreateTrashOnTable()
+    {
+        if (CurrentTrashInstance == null && trashPrefab != null && tableTransform != null)
+        {
+            Vector3 trashPosition = tableTransform.position + Vector3.up * 1.5f;
+            CurrentTrashInstance = Instantiate(trashPrefab, trashPosition, tableTransform.rotation);
+
+            // 트래시에 플레이어 감지 컴포넌트 추가
+            TrashCleanup trashCleanup = CurrentTrashInstance.GetComponent<TrashCleanup>();
+            if (trashCleanup == null)
+            {
+                trashCleanup = CurrentTrashInstance.AddComponent<TrashCleanup>();
+            }
+
+            // VFX 프리팹 설정
+            trashCleanup.Initialize(trashCleanVFXPrefab, playerDetectionRadius);
+
+            Debug.Log($"[Customer] 3번째 고객이 테이블에 쓰레기를 남겼습니다: {CurrentTrashInstance.name}");
+        }
     }
 
     // 3번째 고객이 돈을 두고 가기

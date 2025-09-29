@@ -2728,6 +2728,14 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3439247666719710328, guid: 35d1d1b428c6542218db196e81f391f8, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3439247666719710328, guid: 35d1d1b428c6542218db196e81f391f8, type: 3}
+      propertyPath: m_TagString
+      value: Table
+      objectReference: {fileID: 0}
     - target: {fileID: 4658675040294514590, guid: 35d1d1b428c6542218db196e81f391f8, type: 3}
       propertyPath: m_RootOrder
       value: 16
