@@ -69,7 +69,7 @@ public class PlayerBreadStack : MonoBehaviour
         GameObject newBread = Instantiate(stackedBreadPrefab);
         newBread.transform.SetParent(stackPoint, false);
         newBread.transform.localPosition = GetStackPosition(stackIndex);
-        newBread.transform.localRotation = Quaternion.identity;
+        newBread.transform.localRotation = Quaternion.Euler(0, 90, 0); // y축으로 90도 회전
         newBread.name = $"StackedBread_{stackIndex}";
 
         // 물리 비활성화 (쌓인 빵은 물리 적용 안함)
