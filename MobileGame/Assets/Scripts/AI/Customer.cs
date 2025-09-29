@@ -57,6 +57,7 @@ public class Customer : MonoBehaviour
 
     // 결제 후 아이템
     private GameObject afterPaymentItem;
+    private bool hasAfterPaymentItem = false; // 결제 후 아이템을 가지고 있는지
 
     // 제자리 맴돌기 감지용
     private Vector3 lastPosition = Vector3.zero;
@@ -647,6 +648,12 @@ public class Customer : MonoBehaviour
         // 결제 후 VFX 재생
         PlayPaymentVFX();
 
+        // 가방을 가지고 나가는 애니메이션
+        if (customerAnimator != null)
+        {
+            customerAnimator.SetBool("bIsGrabbed", true);
+        }
+
         // 결제 완료 대기
         yield return new WaitForSeconds(2f);
         currentState = CustomerState.Leaving;
@@ -659,6 +666,7 @@ public class Customer : MonoBehaviour
             afterPaymentItem = Instantiate(afterPaymentItemPrefab, breadCarryPoint);
             afterPaymentItem.transform.localPosition = Vector3.zero;
             afterPaymentItem.transform.localRotation = Quaternion.Euler(0, 90, 0);
+            hasAfterPaymentItem = true;
             Debug.Log($"[Customer] 결제 후 아이템 생성됨: {afterPaymentItem.name}");
         }
     }
@@ -968,7 +976,7 @@ public class Customer : MonoBehaviour
         if (customerAnimator != null)
         {
             customerAnimator.SetBool("bIsRunning", isMoving);
-            customerAnimator.SetBool("bIsGrabbed", carriedBreads.Count > 0);
+            customerAnimator.SetBool("bIsGrabbed", carriedBreads.Count > 0 || hasAfterPaymentItem);
 
             // 즉시 적용을 위해 강제 업데이트
             customerAnimator.Update(0f);
