@@ -26,6 +26,10 @@ public class Upgrade : MonoBehaviour
     [Header("Chair Upgrade")]
     [SerializeField] private string chairPrefabName = "Chair"; // Chair 프리팹 이름
 
+    [Header("Upgrade Effects")]
+    [SerializeField] private ParticleSystem upgradeParticle; // 업그레이드 시 재생할 파티클 (Inspector에서 설정)
+    [SerializeField] private Transform particlePosition; // 파티클 재생 위치 (Inspector에서 설정)
+
     // Chair 활성화 시 실행될 델리게이트
     public static event Action<Transform> OnChairActivated;
 
@@ -149,6 +153,10 @@ public class Upgrade : MonoBehaviour
 
         // 업그레이드 실행
         Debug.Log($"[Upgrade {name}] 업그레이드 실행 시작");
+
+        // 파티클 재생
+        PlayUpgradeParticle();
+
         DeactivateChildren();
         ActivateChildren();
         hasBeenActivated = true;
@@ -332,6 +340,31 @@ public class Upgrade : MonoBehaviour
 
         // 3. 기본: 첫 번째 MoneyManager 찾기
         return FindObjectOfType<MoneyManager>();
+    }
+
+    // 업그레이드 파티클 재생
+    private void PlayUpgradeParticle()
+    {
+        if (upgradeParticle != null)
+        {
+            upgradeParticle.gameObject.SetActive(false);
+
+            if (particlePosition != null)
+            {
+                upgradeParticle.transform.position = particlePosition.position;
+            }
+            else
+            {
+                upgradeParticle.transform.position = transform.position;
+            }
+
+            upgradeParticle.gameObject.SetActive(true);
+            Debug.Log($"[Upgrade {name}] 파티클 활성화됨 - 위치: {upgradeParticle.transform.position}");
+        }
+        else
+        {
+            Debug.Log($"[Upgrade {name}] 파티클이 설정되지 않음");
+        }
     }
 
 }

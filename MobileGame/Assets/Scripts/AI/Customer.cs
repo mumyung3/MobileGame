@@ -27,6 +27,9 @@ public class Customer : MonoBehaviour
     [SerializeField] private float collectAnimationDuration = 0.8f;
     [SerializeField] private AnimationCurve collectCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
+    [Header("After Payment Item")]
+    [SerializeField] private GameObject afterPaymentItemPrefab; // 결제 후 손에 들고 나갈 아이템
+
 
     private NavMeshAgent navAgent;
     private Animator customerAnimator;
@@ -48,6 +51,9 @@ public class Customer : MonoBehaviour
     private List<GameObject> carriedBreads = new List<GameObject>();
     private Transform breadCarryPoint;
     private int targetBreadCount;
+
+    // 결제 후 아이템
+    private GameObject afterPaymentItem;
 
     // 제자리 맴돌기 감지용
     private Vector3 lastPosition = Vector3.zero;
@@ -632,9 +638,23 @@ public class Customer : MonoBehaviour
         // 모든 고객이 결제 완료 후 마커 UI 표시
         ShowMarkerUI();
 
+        // 결제 후 아이템 생성
+        CreateAfterPaymentItem();
+
         // 결제 완료 대기
         yield return new WaitForSeconds(2f);
         currentState = CustomerState.Leaving;
+    }
+
+    private void CreateAfterPaymentItem()
+    {
+        if (afterPaymentItemPrefab != null && breadCarryPoint != null)
+        {
+            afterPaymentItem = Instantiate(afterPaymentItemPrefab, breadCarryPoint);
+            afterPaymentItem.transform.localPosition = Vector3.zero;
+            afterPaymentItem.transform.localRotation = Quaternion.Euler(0, 90, 0);
+            Debug.Log($"[Customer] 결제 후 아이템 생성됨: {afterPaymentItem.name}");
+        }
     }
 
     private IEnumerator LeaveStore()
