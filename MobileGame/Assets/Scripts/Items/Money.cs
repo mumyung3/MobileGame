@@ -74,6 +74,9 @@ public class Money : MonoBehaviour
         if (isCollected) return;
 
         isCollected = true;
+
+        // 돈 수집 사운드
+        SoundManager.GameSounds.PlayItemPickup();
         Debug.Log($"[Money {name}] 수집됨. 가치: {moneyValue}");
 
         // 수집 애니메이션 시작

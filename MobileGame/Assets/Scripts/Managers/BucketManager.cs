@@ -121,6 +121,9 @@ public class BucketManager : MonoBehaviour
                 newBread.transform.localRotation = Quaternion.identity;
                 newBread.name = $"DisplayBread_{displayIndex}";
 
+                // 빵 배치 사운드
+                SoundManager.GameSounds.PlayItemPlace();
+
                 // 물리 비활성화
                 Rigidbody breadRigidbody = newBread.GetComponent<Rigidbody>();
                 if (breadRigidbody != null)

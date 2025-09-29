@@ -365,6 +365,7 @@
 "Assets/Scripts/Items/BreadTrigger.cs"
 "Assets/Scripts/Items/BucketTrigger.cs"
 "Assets/Scripts/Items/Money.cs"
+"Assets/Scripts/Manager/SoundManager.cs"
 "Assets/Scripts/Managers/BucketManager.cs"
 "Assets/Scripts/Managers/CollectionManager.cs"
 "Assets/Scripts/Managers/Counter.cs"

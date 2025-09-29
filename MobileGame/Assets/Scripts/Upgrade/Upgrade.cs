@@ -148,6 +148,8 @@ public class Upgrade : MonoBehaviour
                 return;
             }
 
+            // 돈 차감 사운드
+            SoundManager.GameSounds.PlayMoneySpend();
             Debug.Log($"[Upgrade {name}] 돈 차감 완료");
         }
 
@@ -160,6 +162,9 @@ public class Upgrade : MonoBehaviour
         DeactivateChildren();
         ActivateChildren();
         hasBeenActivated = true;
+
+        // 업그레이드 완료 사운드
+        SoundManager.GameSounds.PlaySuccess();
         Debug.Log($"[Upgrade {name}] 업그레이드 완료!");
 
     }

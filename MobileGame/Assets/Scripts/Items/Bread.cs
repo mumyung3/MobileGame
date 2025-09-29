@@ -113,6 +113,9 @@ public class Bread : MonoBehaviour, IInteractable
 
         isCollected = true;
 
+        // 빵 수집 사운드
+        SoundManager.GameSounds.PlayItemPickup();
+
         // CollectionManager에 수집 알림
         if (CollectionManager.Instance != null)
         {

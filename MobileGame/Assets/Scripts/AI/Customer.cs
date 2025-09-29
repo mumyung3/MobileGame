@@ -621,6 +621,9 @@ public class Customer : MonoBehaviour
             }
         }
 
+        // 계산대 결제 사운드
+        SoundManager.GameSounds.PlayCashRegister();
+
         // 결제 처리 - 모든 빵 제거
         for (int i = carriedBreads.Count - 1; i >= 0; i--)
         {

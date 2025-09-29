@@ -37,6 +37,9 @@ public class TrashCleanup : MonoBehaviour
     {
         Debug.Log("[TrashCleanup] 쓰레기 청소 시작!");
 
+        // 쓰레기 청소 사운드
+        SoundManager.GameSounds.PlayTrashClean();
+
         // VFX 재생
         if (cleanVFXPrefab != null)
         {
