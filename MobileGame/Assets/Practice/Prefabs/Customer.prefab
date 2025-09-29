@@ -332,6 +332,7 @@ GameObject:
   - component: {fileID: 4541141870242516323}
   - component: {fileID: 971556608106169826}
   - component: {fileID: 1432821811490904020}
+  - component: {fileID: 7872264719601658346}
   m_Layer: 10
   m_Name: Customer
   m_TagString: Untagged
@@ -396,6 +397,51 @@ MonoBehaviour:
   stoppingDistance: 0.3
   obstacleAvoidanceRadius: 1.5
   customBreadCarryPoint: {fileID: 728422729949473675}
+  minBreadCount: 1
+  maxBreadCount: 4
+  breadStackHeight: 0.15
+  collectAnimationDuration: 0.8
+  collectCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &7872264719601658346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3769144362882373593}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 052b4b50e387f454a9bfef1cfbd56e6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  uiHeightOffset: 2.5
+  breadCollectionUIPrefab: {fileID: 100906951537177916, guid: 3dd4fdba2474b4b13843661225852b52, type: 3}
+  eatingUIPrefab: {fileID: 1462191363935407372, guid: fb24112ad65464059be021404a3e244a, type: 3}
+  paymentUIPrefab: {fileID: 8216150729668687321, guid: 4fec9b0b0f9c4486cb128fb25afc4639, type: 3}
+  markerUIPrefab: {fileID: 4476687480799539978, guid: 5e9adcc48468345bbbe6372a66408def, type: 3}
 --- !u!1 &3898563997361661198
 GameObject:
   m_ObjectHideFlags: 0

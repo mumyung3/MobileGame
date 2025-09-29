@@ -376,6 +376,8 @@
 "Assets/Scripts/Player/PlayerController.cs"
 "Assets/Scripts/PlayerCharacter.cs"
 "Assets/Scripts/UI/Arrow.cs"
+"Assets/Scripts/UI/CustomerWorldUI.cs"
+"Assets/Scripts/UI/SimpleCustomerUI.cs"
 "Assets/Scripts/Upgrade/Upgrade.cs"
 -langversion:9.0
 

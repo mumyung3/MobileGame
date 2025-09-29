@@ -27,6 +27,7 @@ public class Customer : MonoBehaviour
     [SerializeField] private float collectAnimationDuration = 0.8f;
     [SerializeField] private AnimationCurve collectCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
+
     private NavMeshAgent navAgent;
     private Animator customerAnimator;
     private CustomerState currentState;
@@ -36,6 +37,12 @@ public class Customer : MonoBehaviour
     private Transform targetSpecialPosition; // 3번째 고객의 특별 위치
     private Transform chairPosition; // 의자 위치
     private bool isThirdCustomer = false; // 3번째 고객인지 여부
+
+    // World UI 관련
+    private SimpleCustomerUI worldUI;
+
+    // 3번째 고객의 UI 마커 (참조용)
+    public static GameObject ThirdCustomerUIMarker;
 
     // 빵 관련
     private List<GameObject> carriedBreads = new List<GameObject>();
@@ -97,6 +104,9 @@ public class Customer : MonoBehaviour
 
         // 빵 들고다닐 포인트 생성
         CreateBreadCarryPoint();
+
+        // World UI 초기화
+        InitializeWorldUI();
     }
 
     private void CreateBreadCarryPoint()
@@ -113,6 +123,44 @@ public class Customer : MonoBehaviour
             carryPoint.transform.SetParent(transform);
             carryPoint.transform.localPosition = new Vector3(0, 1.2f, 0.3f); // 손 앞쪽
             breadCarryPoint = carryPoint.transform;
+        }
+    }
+
+    private void InitializeWorldUI()
+    {
+        // SimpleCustomerUI 컴포넌트 추가
+        worldUI = GetComponent<SimpleCustomerUI>();
+        if (worldUI == null)
+        {
+            worldUI = gameObject.AddComponent<SimpleCustomerUI>();
+        }
+
+        // 프리팹 설정 (Resources 폴더에서 로드)
+        SetupUIPrefabs();
+    }
+
+    private void SetupUIPrefabs()
+    {
+        if (worldUI != null)
+        {
+            // Resources 폴더에서 UI 프리팹들 로드
+            GameObject breadPrefab = Resources.Load<GameObject>("UI/BreadCollectionUI");
+            GameObject eatingPrefab = Resources.Load<GameObject>("UI/EatingUI");
+            GameObject paymentPrefab = Resources.Load<GameObject>("UI/PaymentUI");
+            GameObject markerPrefab = Resources.Load<GameObject>("UI/MarkerUI");
+
+            // 프리팹이 있으면 설정
+            if (breadPrefab != null)
+                worldUI.SetBreadCollectionUIPrefab(breadPrefab);
+
+            if (eatingPrefab != null)
+                worldUI.SetEatingUIPrefab(eatingPrefab);
+
+            if (paymentPrefab != null)
+                worldUI.SetPaymentUIPrefab(paymentPrefab);
+
+            if (markerPrefab != null)
+                worldUI.SetMarkerUIPrefab(markerPrefab);
         }
     }
 
@@ -143,6 +191,9 @@ public class Customer : MonoBehaviour
 
         // Chair 델리게이트 구독
         Upgrade.OnChairActivated += OnChairActivated;
+
+        // 3번째 고객은 처음부터 eating UI 표시
+        ShowWorldUI(SimpleCustomerUI.UIType.Eating);
 
         StartCustomerBehavior();
     }
@@ -233,6 +284,12 @@ public class Customer : MonoBehaviour
 
         UpdateAnimation(false);
         currentState = CustomerState.WaitingAtBucket;
+
+        // 빵 수집 UI 표시
+        ShowWorldUI(SimpleCustomerUI.UIType.BreadCollection);
+
+        // 원하는 빵 수량 표시
+        UpdateUIBreadCount(targetBreadCount);
     }
 
     private IEnumerator WaitAtBucket()
@@ -258,6 +315,10 @@ public class Customer : MonoBehaviour
             // 버킷에서 빵 애니메이션과 함께 제거
             yield return StartCoroutine(CollectAndAnimateBread(breadCollected));
             breadCollected++;
+
+            // 남은 빵 수량 UI 업데이트
+            int remainingBread = targetBreadCount - breadCollected;
+            UpdateUIBreadCount(remainingBread);
         }
 
         // 빵을 집은 후 애니메이션 업데이트 (들고 있는 상태로)
@@ -265,6 +326,9 @@ public class Customer : MonoBehaviour
 
         // 빵을 집은 후 1초 대기
         yield return new WaitForSeconds(1f);
+
+        // 빵 수집 완료 후 UI 숨기기
+        HideWorldUI();
 
         // 대기열 참가 요청
         if (customerManager != null)
@@ -475,6 +539,9 @@ public class Customer : MonoBehaviour
         // 강제 위치 이동 완료 후 애니메이션 정지
         UpdateAnimation(false);
 
+        // 계산 UI 표시
+        ShowWorldUI(SimpleCustomerUI.UIType.Payment);
+
         Debug.Log($"[Customer {name}] 대기열 근처 도착! 도착 순서 등록 중...");
 
         // 실제 도착했음을 CustomerManager에게 알리고 정확한 위치 받기
@@ -558,6 +625,12 @@ public class Customer : MonoBehaviour
         {
             customerManager.RemoveFromCounterQueue(this);
         }
+
+        // 결제 UI 숨기기
+        HideWorldUI();
+
+        // 모든 고객이 결제 완료 후 마커 UI 표시
+        ShowMarkerUI();
 
         // 결제 완료 대기
         yield return new WaitForSeconds(2f);
@@ -925,6 +998,9 @@ public class Customer : MonoBehaviour
     {
         Debug.Log($"[Customer {name}] 한 칸 앞으로 이동 시작: 현재 위치 {transform.position} → 목표 위치 {newPosition}");
 
+        // 대기열 이동 시 UI 숨기기
+        HideWorldUI();
+
         // 새 위치로 이동 시작
         navAgent.SetDestination(newPosition);
         UpdateAnimation(true);
@@ -1261,6 +1337,9 @@ public class Customer : MonoBehaviour
         transform.localRotation = Quaternion.identity;
 
         currentState = CustomerState.SittingOnChair;
+
+        // 3번째 고객은 이미 eating UI가 표시되어 있음 (추가 표시 불필요)
+
         yield break;
     }
 
@@ -1284,8 +1363,17 @@ public class Customer : MonoBehaviour
         // 잠시 앉아있다가 나가기
         yield return new WaitForSeconds(2f);
 
+        // 3번째 고객만 먹기 UI 숨기기
+        if (isThirdCustomer)
+        {
+            HideWorldUI();
+        }
+
         // 돈 90원 두고 가기
         SpawnMoneyForThirdCustomer();
+
+        // UI 위치에 마커 UI 프리팹 생성 (참조용)
+        CreateUIMarker();
 
         // 의자에서 일어나서 안전한 위치로 이동
         transform.SetParent(null); // 의자에서 분리
@@ -1351,10 +1439,67 @@ public class Customer : MonoBehaviour
         }
     }
 
+    // World UI 제어 메서드들
+    private void ShowWorldUI(SimpleCustomerUI.UIType uiType)
+    {
+        if (worldUI != null)
+        {
+            worldUI.ShowUI(uiType);
+        }
+    }
+
+    private void HideWorldUI()
+    {
+        if (worldUI != null)
+        {
+            worldUI.HideUI();
+        }
+    }
+
+    private void UpdateUIBreadCount(int breadCount)
+    {
+        if (worldUI != null)
+        {
+            worldUI.UpdateBreadCount(breadCount);
+        }
+    }
+
+    private void ShowMarkerUI()
+    {
+        if (worldUI != null)
+        {
+            worldUI.ShowMarkerUI();
+        }
+    }
+
+    private void CreateUIMarker()
+    {
+        if (isThirdCustomer && worldUI != null)
+        {
+            // 3번째 고객도 동일하게 마커 UI 생성
+            ShowMarkerUI();
+
+            // static 변수에 참조 저장 (현재 UI가 마커 UI)
+            GameObject markerUI = worldUI.GetCurrentUI();
+            if (markerUI != null)
+            {
+                ThirdCustomerUIMarker = markerUI;
+            }
+
+            Debug.Log($"[Customer {name}] UI 마커 프리팹 생성 완료");
+        }
+    }
+
     private void OnDestroy()
     {
         // 델리게이트 구독 해제
         Upgrade.OnChairActivated -= OnChairActivated;
+
+        // World UI 정리
+        if (worldUI != null)
+        {
+            worldUI.HideUI();
+        }
     }
 
     private void OnDrawGizmosSelected()
