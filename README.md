@@ -7,6 +7,10 @@
 
 Cooking Bread는 플레이어가 베이커리를 운영하며 고객들에게 빵을 판매하는 모바일 게임입니다. 고객 대기열 시스템과 실시간 상호작용을 통해 몰입감 있는 경영 시뮬레이션 경험을 제공합니다.
 
+<div align="center">
+  <img src="./Documentation/Photo/스크린샷 2025-10-01 오후 9.12.44.png" width="300" alt="메인 게임화면">
+</div>
+
 ### 🎮 주요 기능
 
 - **실시간 고객 서비스**: 랜덤 스폰되는 고객들의 주문 처리
@@ -21,11 +25,9 @@ Cooking Bread는 플레이어가 베이커리를 운영하며 고객들에게 �
 
 ### 📸 게임 스크린샷
 
-<div align="center">
-  <img src="./Documentation/Photo/스크린샷 2025-10-01 오후 9.12.44.png" width="200" alt="메인 게임화면">
-  <img src="./Documentation/Photo/스크린샷 2025-10-01 오후 9.13.18.png" width="200" alt="고객 서비스">
-  <img src="./Documentation/Photo/스크린샷 2025-10-01 오후 9.13.38.png" width="200" alt="업그레이드 화면">
-  <img src="./Documentation/Photo/스크린샷 2025-10-01 오후 9.14.30.png" width="200" alt="게임플레이">
+<div style="overflow-x: auto; white-space: nowrap;">
+  <img src="./Documentation/Photo/스크린샷 2025-10-01 오후 9.13.18.png" width="250" alt="고객 서비스" style="display: inline-block; margin-right: 10px;">
+  <img src="./Documentation/Photo/스크린샷 2025-10-01 오후 9.13.38.png" width="250" alt="업그레이드 화면" style="display: inline-block;">
 </div>
 
 ## 🛠 기술 스택
@@ -64,6 +66,11 @@ Queue<Customer> customerQueue = new Queue<Customer>();
 customerQueue.Enqueue(newCustomer);
 Customer currentCustomer = customerQueue.Dequeue();
 ```
+
+<div align="center">
+  <img src="./Documentation/Photo/스크린샷 2025-10-01 오후 9.14.30.png" width="300" alt="대기열 시스템 구현">
+  <p><em>구현된 고객 대기열 시스템</em></p>
+</div>
 
 ### 구현 특징
 - **간단한 게임 로직**: 베이커리 시뮬레이션의 핵심 기능에 집중
@@ -124,9 +131,8 @@ cd SuperCent
 
 ## 📧 연락처
 
-개발자: [Your Name]
-이메일: [your-email@example.com]
-포트폴리오: [your-portfolio-link]
+개발자: [Mumyung]
+이메일: [eoalsrud@naver.com]
 
 ---
 
