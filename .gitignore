@@ -188,4 +188,7 @@ xcuserdata/
 /*.gcno
 **/xcshareddata/WorkspaceSettings.xcsettings
 
-# End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,xcode,rider,unity 
+# End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,xcode,rider,unity
+
+# 모바일 패키징 관련 정보 무시
+/Package/
