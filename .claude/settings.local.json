@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/mumyung/Library/Developer/Xcode/DerivedData/**)",
+      "Bash(open:*)",
+      "Bash(code:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
